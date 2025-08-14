@@ -4,7 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 src/main/resources/keys/firebase-dev.json
-.DS_Stor
+.DS_Store
 .gitignore
 
 ### STS ###
