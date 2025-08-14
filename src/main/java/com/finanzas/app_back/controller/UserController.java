@@ -47,7 +47,7 @@ public class UserController {
             GenericResponse response = new GenericResponse();
 
             response.setCoderr("9999");
-            response.setMessage("Error registering user: " + e.getMessage());
+            response.setMessage("Error al registrar al usuario: " + e.getMessage());
 
             return ResponseEntity.badRequest().body(response);
         }
