@@ -1,9 +1,9 @@
-package com.finanzas.app_back.dto.Cuentas;
+package com.finanzas.app_back.model;
 
 import lombok.Data;
 
 @Data
-public class CuentaDto {
+public class Cuenta {
     private String id;
     private String nombre;
     private String descripcion;
@@ -12,5 +12,4 @@ public class CuentaDto {
     private boolean inversion;
     private double tasa;
     private String periodicidad;
-
 }

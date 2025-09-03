@@ -57,9 +57,13 @@ public class UserController {
     }
 
     @PostMapping("/create-token")
-    public ResponseEntity<GenericResponse> createToken(@RequestBody String email) {
+    public ResponseEntity<GenericResponse> createToken(@RequestBody Map<String, String> request) {
         try {
-            return ResponseEntity.ok(userService.createToken(email));
+
+            String email = request.get("email");
+            String uid = request.get("uid");
+
+            return ResponseEntity.ok(userService.createToken(email,uid));
         } catch (Exception e) {
             GenericResponse response = new GenericResponse();
             response.setCoderr("9999");

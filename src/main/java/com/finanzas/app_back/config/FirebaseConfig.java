@@ -13,8 +13,11 @@ import java.io.IOException;
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${firebase.credentials.path}")
+    @Value("${firebase.credentials.path}")   
     private String firebaseCredentialsPath;
+
+    @Value("${firebase.database.url}")   
+    private String firebaseDatabaseUrl;
 
     @PostConstruct
     public void initFirebase() throws IOException {
@@ -22,6 +25,7 @@ public class FirebaseConfig {
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setDatabaseUrl(firebaseDatabaseUrl)
                 .build();
 
         if (FirebaseApp.getApps().isEmpty()) {

@@ -32,11 +32,11 @@ public class UserService {
         try {
             // Validar el token de Firebase
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(firebaseToken);
-            //String uid = decodedToken.getUid();
+            String uid = decodedToken.getUid();
             String email = decodedToken.getEmail();
 
             // Generar un token JWT propio
-            String jwtToken = generaJwtToken(email);
+            String jwtToken = generaJwtToken(email, uid);
 
             resp.setCoderr("0000");
             resp.setMessage("Token validado y JWT generado exitosamente.");
@@ -65,7 +65,7 @@ public class UserService {
                 .setPassword(dto.getPassword())
                 .setDisplayName(dto.getName());
 
-            UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
+            FirebaseAuth.getInstance().createUser(request);
 
             resp.setCoderr("0000");
             resp.setMessage("Usuario creado exitosamente.");
@@ -88,13 +88,13 @@ public class UserService {
     }
 
 
-    public GenericResponse createToken(String email){
+    public GenericResponse createToken(String email, String uid) {
 
         GenericResponse resp = new GenericResponse();
 
         try {
 
-            String jwtToken = generaJwtToken(email);
+            String jwtToken = generaJwtToken(email, uid);
 
             resp.setCoderr("0000");
             resp.setMessage("Token validado y JWT generado exitosamente.");
@@ -106,13 +106,16 @@ public class UserService {
         return resp;
     }
 
-    private String generaJwtToken(String email) {
+    private String generaJwtToken(String email, String uid) {
+
+        System.out.println("Generating JWT for email: " + email + " and uid: " + uid);
+
         return Jwts.builder()
-                //.setSubject(userId)
+                .setSubject(uid)
                 .setIssuer("tu-backend")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 hora de validez
                 .claim("email", email)
+                .claim("uid", uid)
                 .signWith(jwtKey)
                 .compact();
     }
