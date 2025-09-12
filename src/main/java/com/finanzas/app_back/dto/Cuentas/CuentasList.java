@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class CuentasList {
     private ArrayList<Cuenta> cuentas; // Listado de cuentas
-    private Double saldoPagar;
-    private Double saldoRestante;
+    private Double saldoDisponible;
+    private Double saldoInvertido;
     private Double saldoTotal;
 }

@@ -10,6 +10,7 @@ public class Cuenta {
     private String institucion;
     private double saldo;
     private boolean inversion;
-    private double tasa;
-    private String periodicidad;
+    private boolean vista;
+    private int orden;
+    private boolean activa;
 }

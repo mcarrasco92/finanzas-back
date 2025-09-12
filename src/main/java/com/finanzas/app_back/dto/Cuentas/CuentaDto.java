@@ -10,7 +10,17 @@ public class CuentaDto {
     private String institucion;
     private double saldo;
     private boolean inversion;
-    private double tasa;
-    private String periodicidad;
+    private boolean vista;
+    private boolean activa;
+    private int orden;
+
+    public String validaCampos() {
+        if (nombre == null || nombre.isEmpty()) return "El campo nombre es obligatorio.";
+        if (descripcion == null || descripcion.isEmpty()) return "El campo descripcion es obligatorio.";
+        if (institucion == null || institucion.isEmpty()) return "El campo institucion es obligatorio.";
+        return "";
+    }
 
 }
+
+

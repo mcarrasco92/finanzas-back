@@ -12,7 +12,7 @@ import com.finanzas.app_back.dto.User.UserRegistration;
 import com.finanzas.app_back.dto.GenericResponse;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("api/users")
 public class UserController {
 
     private final UserService userService;
