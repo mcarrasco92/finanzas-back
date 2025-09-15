@@ -16,8 +16,6 @@ public class CuentaDto {
 
     public String validaCampos() {
         if (nombre == null || nombre.isEmpty()) return "El campo nombre es obligatorio.";
-        if (descripcion == null || descripcion.isEmpty()) return "El campo descripcion es obligatorio.";
-        if (institucion == null || institucion.isEmpty()) return "El campo institucion es obligatorio.";
         return "";
     }
 
