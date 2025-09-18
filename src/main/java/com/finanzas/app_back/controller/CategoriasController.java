@@ -24,15 +24,10 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
-
             response = categoriasService.obtenerCategorias(uid);
-
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al recuperar las categorias: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al recuperar las categorias");
         }
 
     }
@@ -42,30 +37,22 @@ public class CategoriasController {
 
     @PostMapping("/registrar")
     public ResponseEntity<GenericResponse> registrarCategoria(HttpServletRequest request, @RequestBody CategoriaDto categoriaData) {
-
-        GenericResponse response = new GenericResponse();
-
         try {
             String uid = (String) request.getAttribute("uid");
 
             String valida = categoriaData.validaCampos();
-
-            if(!valida.isEmpty()) {
+            if (!valida.isEmpty()) {
+                GenericResponse response = new GenericResponse();
                 response.setCoderr("1002");
                 response.setMessage(valida);
                 return ResponseEntity.ok(response);
             }
 
             categoriaData.setActiva(true);
-
-            // Llamar al servicio para registrar la categoria
-            response = categoriasService.registrarCategoria(uid, categoriaData);
+            GenericResponse response = categoriasService.registrarCategoria(uid, categoriaData);
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al registrar la categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al registrar la categoría");
         }
     }
 
@@ -74,24 +61,15 @@ public class CategoriasController {
 
     @DeleteMapping("/eliminar/{categoriaId}")
     public ResponseEntity<GenericResponse> eliminarCategoria(HttpServletRequest request, @PathVariable String categoriaId) {
-        
-        GenericResponse response = new GenericResponse();
+        ResponseEntity<GenericResponse> validacion = validarCategoriaId(categoriaId);
+        if (validacion != null) return validacion;
 
         try {
             String uid = (String) request.getAttribute("uid");
-
-            if (categoriaId == null || categoriaId.isEmpty()) {
-                response.setCoderr("1002");
-                response.setMessage("El ID de la categoria es obligatorio.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-
-            response = categoriasService.eliminarCategoria(uid, categoriaId);
+            GenericResponse response = categoriasService.eliminarCategoria(uid, categoriaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al eliminar la categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al eliminar la categoría");
         }
     }
 
@@ -100,29 +78,24 @@ public class CategoriasController {
 
     @PutMapping("/actualizar/{categoriaId}")
     public ResponseEntity<GenericResponse> actualizarCategoria(HttpServletRequest request, @PathVariable String categoriaId, @RequestBody CategoriaDto updatedCategoriaData) {
-        GenericResponse response = new GenericResponse();
+        ResponseEntity<GenericResponse> validacion = validarCategoriaId(categoriaId);
+        if (validacion != null) return validacion;
+
         try {
             String uid = (String) request.getAttribute("uid");
 
-            if (categoriaId == null || categoriaId.isEmpty()) {
-                response.setCoderr("1002");
-                response.setMessage("El ID de la categoria es obligatorio.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-
             String valida = updatedCategoriaData.validaCampos();
-            if(!valida.isEmpty()) {
+            if (!valida.isEmpty()) {
+                GenericResponse response = new GenericResponse();
                 response.setCoderr("1002");
                 response.setMessage(valida);
                 return ResponseEntity.ok(response);
             }
 
-            response = categoriasService.actualizarCategoria(uid, categoriaId, updatedCategoriaData);
+            GenericResponse response = categoriasService.actualizarCategoria(uid, categoriaId, updatedCategoriaData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al actualizar la categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al actualizar la categoría");
         }
     }
 
@@ -130,22 +103,15 @@ public class CategoriasController {
 
     @GetMapping("/{categoriaId}")
     public ResponseEntity<GenericResponse> consultaCategoria(HttpServletRequest request, @PathVariable String categoriaId) {
-        GenericResponse response = new GenericResponse();
+        ResponseEntity<GenericResponse> validacion = validarCategoriaId(categoriaId);
+        if (validacion != null) return validacion;
+
         try {
             String uid = (String) request.getAttribute("uid");
-
-            if (categoriaId == null || categoriaId.isEmpty()) {
-                response.setCoderr("1002");
-                response.setMessage("El ID de la categoria es obligatorio.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-
-            response = categoriasService.consultaCategoria(uid, categoriaId);
+            GenericResponse response = categoriasService.consultaCategoria(uid, categoriaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al consultar la categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al consultar la categoría");
         }
     }
 
@@ -155,39 +121,54 @@ public class CategoriasController {
         GenericResponse response = new GenericResponse();
 
         try {
-
             String uid = (String) request.getAttribute("uid");
-
             response = categoriasService.ordenCategorias(uid, categoriasList);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al ordenar las categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al ordenar las categorias");
         }
 
-        return ResponseEntity.ok(response);
     }
 
     ///////////////////////////////     ACTIVAR / DESACTIVAR CUENTA    //////////////////////////////
     @PutMapping("/activar/{categoriaId}")
-    public ResponseEntity<GenericResponse> activarCategoria(HttpServletRequest request, @PathVariable String categoriaId, @RequestBody boolean activa) {
-        GenericResponse response = new GenericResponse();
+    public ResponseEntity<GenericResponse> activarCategoria(HttpServletRequest request, @PathVariable String categoriaId, @RequestBody Boolean activa) {
+        ResponseEntity<GenericResponse> validacion = validarCategoriaId(categoriaId);
+        if (validacion != null) return validacion;
+
         try {
             String uid = (String) request.getAttribute("uid");
-
-            if (categoriaId == null || categoriaId.isEmpty()) {
-                response.setCoderr("1002");
-                response.setMessage("El ID de la categoria es obligatorio.");
-                return ResponseEntity.ok(response);
-            }
-
-            response = categoriasService.activarCategoria(uid, categoriaId, activa);
+            GenericResponse response = categoriasService.activarCategoria(uid, categoriaId, activa);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al activar la categoria: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcion(e, "Error al activar la categoría");
         }
     }
+
+
+
+    private ResponseEntity<GenericResponse> validarCategoriaId(String categoriaId) {
+        GenericResponse response = new GenericResponse();
+        if (categoriaId == null || categoriaId.isEmpty()) {
+            response.setCoderr("1002");
+            response.setMessage("El ID de la categoría es obligatorio.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        return null; // Indica que la validación fue exitosa
+    }
+
+    private ResponseEntity<GenericResponse> manejarExcepcion(Exception e, String mensaje) {
+        GenericResponse response = new GenericResponse();
+        response.setCoderr("9999");
+        response.setMessage(mensaje + ": " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+
+
+
+
+
+
 
 }

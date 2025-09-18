@@ -1,6 +1,7 @@
 package com.finanzas.app_back.service;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import org.springframework.stereotype.Service;
@@ -17,27 +18,20 @@ import com.google.firebase.database.ValueEventListener;
 @Service
 public class CategoriasService {
 
-    public GenericResponse registrarCategoria(String uid ,CategoriaDto dto) {
+    public GenericResponse registrarCategoria(String uid, CategoriaDto dto) {
         GenericResponse response = new GenericResponse();
 
         try {
-
-            // Referencia a la base de datos de Firebase
-            DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-
-            // Crear una nueva entrada en la base de datos bajo el UID del usuario
-            DatabaseReference nuevaCategoriaRef = databaseReference.child("users").child(uid).child("categorias").push();
-            String idGenerado = nuevaCategoriaRef.getKey(); // Obtener el ID único generado
+            DatabaseReference nuevaCategoriaRef = getCategoriasReference(uid).push();
+            String idGenerado = nuevaCategoriaRef.getKey();
+            dto.setId(idGenerado);
             nuevaCategoriaRef.setValueAsync(dto);
 
-            dto.setId(idGenerado);
-
             response.setCoderr("0000");
-            response.setMessage("Categoria registrada exitosamente.");
+            response.setMessage("Categoría registrada exitosamente.");
             response.setData(dto);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al registrar la categoria: " + e.getMessage());
+            return manejarExcepcion(e, "Error al registrar la categoría");
         }
 
         return response;
@@ -45,41 +39,23 @@ public class CategoriasService {
 
     public GenericResponse obtenerCategorias(String uid) {
         GenericResponse response = new GenericResponse();
-        ArrayList<Categoria> categorias = new ArrayList<>();
-        ArrayList<Categoria> categoriasIngresos = new ArrayList<>();
-        ArrayList<Categoria> categoriasEgresos = new ArrayList<>();
-    
-        try {
 
-            categorias = firebaseGetCategorias(uid);
+        try {
+            ArrayList<Categoria> categorias = firebaseGetCategorias(uid).join();
 
             if (categorias.isEmpty()) {
                 response.setCoderr("0001");
-                response.setMessage("No se encontraron categorias.");
+                response.setMessage("No se encontraron categorías.");
                 return response;
             }
-            
-            for (Categoria categoria : categorias) {
 
-                if(categoria.getTipo().equals("I")){
-                    categoriasIngresos.add(categoria);
-                }else if(categoria.getTipo().equals("E")){
-                    categoriasEgresos.add(categoria);
-                }
-                
-            }
-
-            CategoriasList categoriasList = new CategoriasList();
-            categoriasList.setCategoriasIngresos(categoriasIngresos);
-            categoriasList.setCategoriasEgresos(categoriasEgresos);
+            CategoriasList categoriasList = separarCategoriasPorTipo(categorias);
 
             response.setCoderr("0000");
-            response.setMessage("Categorias obtenidas exitosamente.");
-
-            response.setData(categoriasList); // Asumiendo que 'categorias' es la lista obtenida
+            response.setMessage("Categorías obtenidas exitosamente.");
+            response.setData(categoriasList);
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al obtener las categorias: " + e.getMessage());
+            return manejarExcepcion(e, "Error al obtener las categorías");
         }
 
         return response;
@@ -89,35 +65,20 @@ public class CategoriasService {
         GenericResponse response = new GenericResponse();
 
         try {
-            
-            Categoria categoria = firebaseGetCategoriaById(uid, categoriaId);
+            Categoria categoria = validarCategoriaExistente(uid, categoriaId);
 
-            if(categoria == null){
-                response.setCoderr("0001");
-                response.setMessage("Categoria no encontrada.");
+            if (categoria.isActiva()) {
+                response.setCoderr("0002");
+                response.setMessage("No se puede eliminar una categoría activa.");
                 return response;
             }
 
-            if(categoria.isActiva()){
-                response.setCoderr("0002");
-                response.setMessage("No se puede eliminar una categoria activa.");
-                return response;
-            }   
-
-            // Referencia a la base de datos de Firebase
-            DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-
-            // Referencia al nodo de la categoria específica del usuario
-            DatabaseReference categoriaRef = databaseReference.child("users").child(uid).child("categorias").child(categoriaId);
-
-            // Eliminar la categoria
-            categoriaRef.removeValueAsync();
+            getCategoriaReference(uid, categoriaId).removeValueAsync();
 
             response.setCoderr("0000");
-            response.setMessage("Categoria eliminada exitosamente.");
+            response.setMessage("Categoría eliminada exitosamente.");
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al eliminar la categoria: " + e.getMessage());
+            return manejarExcepcion(e, "Error al eliminar la categoría");
         }
 
         return response;
@@ -127,32 +88,17 @@ public class CategoriasService {
         GenericResponse response = new GenericResponse();
 
         try {
+            Categoria categoria = validarCategoriaExistente(uid, categoriaId);
 
-            Categoria categoria = firebaseGetCategoriaById(uid, categoriaId);
-
-            if(categoria == null){
-                response.setCoderr("0001");
-                response.setMessage("Categoria no encontrada.");
-                return response;
-            } 
             categoria.setNombre(updatedCategoriaDto.getNombre());
+            categoria.setTipo(updatedCategoriaDto.getTipo());
 
-            // Referencia a la base de datos de Firebase
-            DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-
-            // Referencia al nodo de la categoria específica del usuario
-            DatabaseReference categoriaRef = databaseReference.child("users").child(uid).child("categorias").child(categoriaId);
-
-            // Actualizar los datos de la categoria
-            categoriaRef.setValueAsync(categoria);
+            getCategoriaReference(uid, categoriaId).setValueAsync(categoria);
 
             response.setCoderr("0000");
-            response.setMessage("Categoria actualizada exitosamente.");
-
-            
+            response.setMessage("Categoría actualizada exitosamente.");
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al actualizar la categoria: " + e.getMessage());
+            return manejarExcepcion(e, "Error al actualizar la categoría");
         }
 
         return response;
@@ -163,7 +109,7 @@ public class CategoriasService {
 
         try {
 
-            Categoria categoria = firebaseGetCategoriaById(uid, categoriaId);
+            Categoria categoria = firebaseGetCategoriaById(uid, categoriaId).join();
 
             if(categoria == null){
                 response.setCoderr("0001");
@@ -174,13 +120,13 @@ public class CategoriasService {
             response.setCoderr("0000");
             response.setMessage("Categoria obtenida exitosamente.");
             response.setData(categoria);
+            return response;
 
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al obtener la categoria: " + e.getMessage());
+            return manejarExcepcion(e, "Error al obtener la categoría");
         }
 
-        return response;
+        
     }
 
     public GenericResponse ordenCategorias(String uid, ArrayList<CategoriaDto> categorias){
@@ -234,46 +180,29 @@ public class CategoriasService {
 
         response.setCoderr("0000");
         response.setMessage("Categorias actualizadas exitosamente.");
-        } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al obtener la categoria: " + e.getMessage());
-        }
 
         return response;
+
+        } catch (Exception e) {
+            return manejarExcepcion(e, "Error al actualizar las categorias");
+        }
+        
     }
 
     public GenericResponse activarCategoria(String uid, String categoriaId, boolean activa) {
         GenericResponse response = new GenericResponse();
 
         try {
-
-
-            Categoria categoria = firebaseGetCategoriaById(uid, categoriaId);
-
-            if(categoria == null){
-                response.setCoderr("0001");
-                response.setMessage("Categoria no encontrada.");
-                return response;
-            }
+            Categoria categoria = validarCategoriaExistente(uid, categoriaId);
 
             categoria.setActiva(activa);
-
-
-            // Referencia a la base de datos de Firebase
-            DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-            // Referencia al nodo de la categoria específica del usuario
-            DatabaseReference categoriaRef = databaseReference.child("users").child(uid).child("categorias").child(categoriaId);
-            // Actualizar los datos de la categoria
-            categoriaRef.setValueAsync(categoria);
+            getCategoriaReference(uid, categoriaId).setValueAsync(categoria);
 
             response.setCoderr("0000");
-            response.setMessage("Categoria actualizada exitosamente.");
+            response.setMessage("Categoría " + (activa ? "activada" : "desactivada") + " exitosamente.");
             response.setData(activa);
-
-            
         } catch (Exception e) {
-            response.setCoderr("9999");
-            response.setMessage("Error al actualizar la categoria: " + e.getMessage());
+            return manejarExcepcion(e, "Error al activar/desactivar la categoría");
         }
 
         return response;
@@ -281,89 +210,114 @@ public class CategoriasService {
 
 
 
-    public ArrayList<Categoria> firebaseGetCategorias(String uid){
+    public CompletableFuture<ArrayList<Categoria>> firebaseGetCategorias(String uid) {
+        CompletableFuture<ArrayList<Categoria>> future = new CompletableFuture<>();
         ArrayList<Categoria> categorias = new ArrayList<>();
-        CountDownLatch latch = new CountDownLatch(1);
-
+    
         try {
             // Referencia a la base de datos de Firebase
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-
-        // Referencia al nodo de las categorias del usuario
-        DatabaseReference categoriasRef = databaseReference.child("users").child(uid).child("categorias");
-
-
-        // Escuchar los datos de Firebase
-        categoriasRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot categoriaSnapshot : dataSnapshot.getChildren()) {
-                    Categoria categoria = categoriaSnapshot.getValue(Categoria.class);
-                    String key = categoriaSnapshot.getKey();
-
-                    if(categoria != null){
-                        categoria.setId(key);
-                        categorias.add(categoria);
+            DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
+            DatabaseReference categoriasRef = databaseReference.child("users").child(uid).child("categorias");
+    
+            // Escuchar los datos de Firebase
+            categoriasRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    for (DataSnapshot categoriaSnapshot : dataSnapshot.getChildren()) {
+                        Categoria categoria = categoriaSnapshot.getValue(Categoria.class);
+                        if (categoria != null) {
+                            categoria.setId(categoriaSnapshot.getKey());
+                            categorias.add(categoria);
+                        }
                     }
+                    future.complete(categorias); // Completar el CompletableFuture con la lista de categorías
                 }
-                latch.countDown(); // Liberar el latch cuando se complete la lectura
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                System.out.println("Error al consultar las categorias: " + databaseError.getMessage());
-                latch.countDown(); // Liberar el latch cuando se complete la lectura
-            }
-
-        });
-
-        latch.await(); // Esperar a que se complete la operación asíncrona
-        return categorias;
-
-
+    
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    System.out.println("Error al consultar las categorías: " + databaseError.getMessage());
+                    future.completeExceptionally(new RuntimeException("Error al consultar las categorías: " + databaseError.getMessage()));
+                }
+            });
         } catch (Exception e) {
-            return categorias;
+            future.completeExceptionally(e); // Completar con una excepción si ocurre un error
         }
-        
+    
+        return future;
     }
 
-    public Categoria firebaseGetCategoriaById(String uid, String categoriaId){
-        CountDownLatch latch = new CountDownLatch(1);
-        final Categoria[] categoria = new Categoria[1];
+    public CompletableFuture<Categoria> firebaseGetCategoriaById(String uid, String categoriaId) {
+    CompletableFuture<Categoria> future = new CompletableFuture<>();
 
-        try {
-        // Referencia a la base de datos de Firebase
+    try {
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-        // Referencia al nodo de las categorias del usuario
         DatabaseReference categoriaRef = databaseReference.child("users").child(uid).child("categorias").child(categoriaId);
-        // Escuchar los datos de Firebase
+
         categoriaRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Categoria categoriaLocal = dataSnapshot.getValue(Categoria.class);
-                String key = dataSnapshot.getKey();
-                if(categoriaLocal != null){
-                    categoriaLocal.setId(key);
-                    categoria[0] = categoriaLocal;
+                Categoria categoria = dataSnapshot.getValue(Categoria.class);
+                if (categoria != null) {
+                    categoria.setId(dataSnapshot.getKey());
+                    future.complete(categoria); // Completar el CompletableFuture con el resultado
+                } else {
+                    future.complete(null); // Completar con null si no se encuentra la categoría
                 }
-                latch.countDown(); // Liberar el latch cuando se complete la lectura
-            } 
+            }
+
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                System.out.println("Error al consultar las categorias: " + databaseError.getMessage());
-                latch.countDown(); // Liberar el latch cuando se complete la lectura
+                System.out.println("Error al consultar la categoría: " + databaseError.getMessage());
+                future.completeExceptionally(new RuntimeException("Error al consultar la categoría: " + databaseError.getMessage()));
             }
-        }); 
+        });
+    } catch (Exception e) {
+        future.completeExceptionally(e); // Completar con una excepción si ocurre un error
+    }
 
-        latch.await(); // Esperar a que se complete la operación asíncrona
+    return future;
+}
 
+    private CategoriasList separarCategoriasPorTipo(ArrayList<Categoria> categorias) {
+        ArrayList<Categoria> categoriasIngresos = new ArrayList<>();
+        ArrayList<Categoria> categoriasEgresos = new ArrayList<>();
 
-        return categoria[0];
-            
-        } catch (Exception e) {
-            return categoria[0];
+        for (Categoria categoria : categorias) {
+            if ("I".equals(categoria.getTipo())) {
+                categoriasIngresos.add(categoria);
+            } else if ("E".equals(categoria.getTipo())) {
+                categoriasEgresos.add(categoria);
+            }
         }
 
+        CategoriasList categoriasList = new CategoriasList();
+        categoriasList.setCategoriasIngresos(categoriasIngresos);
+        categoriasList.setCategoriasEgresos(categoriasEgresos);
+
+        return categoriasList;
+    }
+
+    private DatabaseReference getCategoriasReference(String uid) {
+        return FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("categorias");
+    }
+
+    private DatabaseReference getCategoriaReference(String uid, String categoriaId) {
+        return getCategoriasReference(uid).child(categoriaId);
+    }
+
+    private GenericResponse manejarExcepcion(Exception e, String mensaje) {
+        GenericResponse response = new GenericResponse();
+        response.setCoderr("9999");
+        response.setMessage(mensaje + ": " + e.getMessage());
+        return response;
+    }
+
+    private Categoria validarCategoriaExistente(String uid, String categoriaId) {
+        Categoria categoria = firebaseGetCategoriaById(uid, categoriaId).join();
+        if (categoria == null) {
+            throw new RuntimeException("Categoría no encontrada.");
+        }
+        return categoria;
     }
 
 
