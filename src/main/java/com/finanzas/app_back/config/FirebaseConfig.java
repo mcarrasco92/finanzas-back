@@ -12,6 +12,7 @@ import java.io.IOException;
 
 @Configuration
 public class FirebaseConfig {
+    
 
     @Value("${firebase.credentials.path}")   
     private String firebaseCredentialsPath;
@@ -33,4 +34,6 @@ public class FirebaseConfig {
             System.out.println("✅ Firebase inicializado con credenciales: " + firebaseCredentialsPath);
         }
     }
+
+     
 }
