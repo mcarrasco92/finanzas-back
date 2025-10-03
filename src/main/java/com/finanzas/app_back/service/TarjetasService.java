@@ -9,6 +9,7 @@ import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Tarjetas.TarjetasList;
 import com.finanzas.app_back.model.Tarjeta;
 import com.finanzas.app_back.repositories.TarjetasRepository;
+import com.finanzas.app_back.repositories.TransaccionesRepository;
 
 @Service
 public class TarjetasService {
@@ -19,6 +20,8 @@ public class TarjetasService {
 
     @Autowired
     private TarjetasRepository tarjetasRepository;
+    @Autowired
+    private TransaccionesRepository transaccionesRepository;
 
     private GenericResponse response = new GenericResponse();
 
@@ -87,6 +90,8 @@ public class TarjetasService {
                 return response;
             }
 
+            tarjeta.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId));
+
             response.setCoderr("0000");
             response.setMessage("Tarjeta obtenida exitosamente.");
             response.setData(tarjeta);
@@ -146,18 +151,19 @@ public class TarjetasService {
                 response.setCoderr("0001");
                 response.setMessage("Tarjeta no encontrada.");
                 return response;
-            }
+            } 
 
-            if(tarjeta.isActiva()){
-                response.setCoderr("0002");
-                response.setMessage("No se puede eliminar una tarjeta activa.");
+            if(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId)){
+                response.setCoderr("1003");
+                response.setMessage("No se puede eliminar la tarjeta porque tiene transacciones asociadas.");
                 return response;
-            }   
+            }
 
             tarjetasRepository.deleteTarjeta(uid, tarjetaId);
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta eliminada exitosamente.");
+            response.setData(null);
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al eliminar la tarjeta");
         }

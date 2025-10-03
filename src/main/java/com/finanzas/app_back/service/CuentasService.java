@@ -10,6 +10,7 @@ import com.finanzas.app_back.dto.Cuentas.CuentasList;
 import com.finanzas.app_back.model.Cuenta;
 
 import com.finanzas.app_back.repositories.CuentasRepository;
+import com.finanzas.app_back.repositories.TransaccionesRepository;
 
 
 
@@ -22,6 +23,8 @@ public class CuentasService {
 
     @Autowired
     private CuentasRepository cuentasRepository;
+    @Autowired
+    private TransaccionesRepository transaccionesRepository;
 
     private GenericResponse response = new GenericResponse();
 
@@ -112,6 +115,8 @@ public class CuentasService {
                 return response;
             }
 
+            cuenta.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId));
+
             response.setCoderr("0000");
             response.setMessage("Cuenta obtenida exitosamente.");
             response.setData(cuenta);
@@ -173,9 +178,9 @@ public class CuentasService {
                 return response;
             }
 
-            if(cuenta.isActiva()){
-                response.setCoderr("0002");
-                response.setMessage("No se puede eliminar una cuenta activa.");
+            if(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId)){
+                response.setCoderr("1003");
+                response.setMessage("No se puede eliminar la cuenta porque tiene transacciones asociadas.");
                 return response;
             }   
 
@@ -183,6 +188,7 @@ public class CuentasService {
 
             response.setCoderr("0000");
             response.setMessage("Cuenta eliminada exitosamente.");
+            response.setData(null);
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al eliminar la cuenta");
         }

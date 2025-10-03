@@ -13,6 +13,7 @@ public class CuentaDto {
     private boolean vista;
     private boolean activa;
     private int orden;
+    private boolean transacciones;
 
     public String validaCampos() {
         if (nombre == null || nombre.isEmpty()) return "El campo nombre es obligatorio.";

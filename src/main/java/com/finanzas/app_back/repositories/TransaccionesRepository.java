@@ -179,6 +179,49 @@ public class TransaccionesRepository {
         return transaccionesList;
     }
 
+
+
+    public Boolean getExistTransaccionesByTarjeta(String uid, String TarjetaId)throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+
+        ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
+                .whereEqualTo("tarjetaId", TarjetaId)
+                .get();
+
+        // Obtener los resultados de la consulta
+        QuerySnapshot snapshot = querySnapshot.get();
+
+        // Verificar si hay coincidencias
+        if (snapshot.isEmpty()) {
+            System.out.println("No se encontraron transacciones para la tarjetaId: " + TarjetaId);
+            return false; // No existen transacciones con la tarjetaId especificada
+        } else {
+            System.out.println("Si se encontraron transacciones para la tarjetaId: " + TarjetaId);
+            return true; // Existen transacciones con la tarjetaId especificada
+        }
+    }
+
+    public Boolean getExistTransaccionesByCuenta(String uid, String CuentaId)throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+
+        ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
+                .whereEqualTo("cuentaId", CuentaId)
+                .get();
+
+        // Obtener los resultados de la consulta
+        QuerySnapshot snapshot = querySnapshot.get();
+
+        // Verificar si hay coincidencias
+        if (snapshot.isEmpty()) {
+            System.out.println("No se encontraron transacciones para la cuentaId: " + CuentaId);
+            return false; // No existen transacciones con la cuentaId especificada
+        } else {
+            System.out.println("Si se encontraron transacciones para la cuentaId: " + CuentaId);
+            return true; // Existen transacciones con la cuentaId especificada
+        }
+    }
+
+
     public TransaccionDto getTransaccionById(String uid, String transaccionId)
             throws ExecutionException, InterruptedException {
         DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME)
