@@ -60,8 +60,6 @@ public class CuentasController {
                 return ResponseEntity.ok(response);
             }
 
-            cuentaData.setActiva(true);
-
             // Llamar al servicio para registrar la cuenta
             response = cuentasService.registrarCuenta(uid, cuentaData);
             return ResponseEntity.ok(response);

@@ -8,6 +8,7 @@ public class TarjetaDto {
     private String nombre;
     private String descripcion;
     private String institucion;
+    private double saldo;
     private String dpago;
     private String dcorte;
     private boolean activa;

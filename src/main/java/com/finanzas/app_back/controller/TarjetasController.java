@@ -60,8 +60,6 @@ public class TarjetasController {
                 return ResponseEntity.ok(response);
             }
 
-            tarjetaData.setActiva(true);
-
             // Llamar al servicio para registrar la tarjeta
             response = tarjetasService.registrarTarjeta(uid, tarjetaData);
             return ResponseEntity.ok(response);

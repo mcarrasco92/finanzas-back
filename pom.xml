@@ -84,6 +84,11 @@
     <artifactId>jjwt-jackson</artifactId>
     <version>0.11.5</version>
 </dependency>
+<dependency>
+    <groupId>com.google.cloud</groupId>
+    <artifactId>google-cloud-firestore</artifactId>
+    <version>3.13.0</version> <!-- Usa la última versión estable -->
+</dependency>
 	</dependencies>
 	
 

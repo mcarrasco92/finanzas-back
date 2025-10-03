@@ -29,6 +29,8 @@ public class TarjetasService {
 
             Tarjeta tarjeta = new Tarjeta();
             tarjeta.setDataDto(dto);
+            tarjeta.setSaldo(0.0);
+            tarjeta.setActiva(true);
 
             String tarjetaId = tarjetasRepository.newTarjeta(uid, tarjeta);
             dto.setId(tarjetaId);
@@ -123,6 +125,7 @@ public class TarjetasService {
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta actualizada exitosamente.");
+            response.setData(existingTarjetaDto);
 
             
         } catch (Exception e) {

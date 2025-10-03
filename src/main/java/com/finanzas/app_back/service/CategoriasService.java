@@ -118,6 +118,7 @@ public class CategoriasService {
 
             response.setCoderr("0000");
             response.setMessage("Categoria actualizada exitosamente.");
+            response.setData(existingCategoriaDto);
 
             
         } catch (Exception e) {
