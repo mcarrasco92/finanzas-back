@@ -12,4 +12,5 @@ public class GeneralService {
         response.setMessage(mensaje + ": " + e.getMessage());
         return response;
     }
+
 }
