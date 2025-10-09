@@ -35,7 +35,6 @@ public class CuentasService {
 
             Cuenta cuenta = new Cuenta();
             cuenta.setDataDto(dto);
-            cuenta.setSaldo(0.0);
             cuenta.setActiva(true);
 
             String cuentaId = cuentasRepository.newCuenta(uid, cuenta);
@@ -152,6 +151,8 @@ public class CuentasService {
             cuenta.setDataDto(existingCuentaDto);
 
             cuentasRepository.updateCuenta(uid, cuentaId, cuenta);
+
+            existingCuentaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId));
 
             response.setCoderr("0000");
             response.setMessage("Cuenta actualizada exitosamente.");

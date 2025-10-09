@@ -128,6 +128,8 @@ public class TarjetasService {
 
             tarjetasRepository.updateTarjeta(uid, tarjetaId, tarjeta);
 
+            existingTarjetaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId));
+
             response.setCoderr("0000");
             response.setMessage("Tarjeta actualizada exitosamente.");
             response.setData(existingTarjetaDto);
