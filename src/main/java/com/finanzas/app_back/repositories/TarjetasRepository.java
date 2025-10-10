@@ -1,5 +1,6 @@
 package com.finanzas.app_back.repositories;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -16,6 +17,7 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
+import com.google.type.Date;
 
 @Repository
 public class TarjetasRepository {
@@ -78,4 +80,77 @@ public class TarjetasRepository {
         writeResult.get(); // Espera a que la operación se complete
     }
 
+
+    public double pagoPendiente(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+        ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
+        DocumentSnapshot document = future.get();
+
+        
+
+
+        if (document.exists()) {
+            Tarjeta tarjeta = document.toObject(Tarjeta.class);
+
+            // Obtener el día de corte como un entero
+            int diaCorte = Integer.parseInt(tarjeta.getDcorte());
+
+            // Obtener la fecha actual
+            LocalDate fechaActual = LocalDate.now();
+
+            // Calcular la fecha de inicio
+            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte);
+
+            fechaInicio = fechaInicio.plusDays(1); // Mover al día siguiente para incluir el día de corte
+
+            if (fechaInicio.getDayOfMonth() < diaCorte) {
+                // Si el día actual es menor que el día de corte, retroceder un mes
+                fechaInicio = fechaInicio.minusMonths(1);
+            }
+
+            // Calcular la fecha de fin (un mes después de la fecha de inicio)
+            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1); // Restar un día para incluir el último día del período
+
+            // Convertir las fechas al formato "YYYY-MM-DD"
+            String fechaInicioStr = fechaInicio.toString(); // Formato por defecto de LocalDate es "YYYY-MM-DD"
+            String fechaFinStr = fechaFin.toString();
+
+            // Consultar las transacciones en el rango de fechas
+            CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+            ApiFuture<QuerySnapshot> snapshot = transaccionesRef
+                .whereEqualTo("tarjetaId", tarjetaId)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicioStr) // Fecha >= fechaInicio
+                .whereLessThan("fecha", fechaFinStr) // Fecha < fechaFin
+                .get();
+
+            // Calcular el total pendiente
+            double totalPendiente = 0;
+            for (QueryDocumentSnapshot transaccion : snapshot.get().getDocuments()) {
+                totalPendiente += transaccion.getDouble("importe");
+            }
+
+            double SaldoTotal = tarjeta.getSaldo();;
+
+            double pagoPendiente = SaldoTotal - totalPendiente;
+
+            return pagoPendiente;
+
+
+
+
+
+
+
+            
+        } else {
+            return 0; // O lanza una excepción si prefieres
+        }
+    }
+
+
+    
+
 }
+
+
+

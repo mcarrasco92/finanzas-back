@@ -9,4 +9,6 @@ public class TransaccionFiltroDto {
     private String categoria; // Categoría de la transacción (opcional)
     private String cuentaId; // ID de la cuenta (opcional)
     private String tarjetaId; // ID de la tarjeta (opcional)
+    private String fechaInicio;
+    private String fechaFin;
 }

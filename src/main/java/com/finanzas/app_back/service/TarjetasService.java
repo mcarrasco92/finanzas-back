@@ -91,6 +91,7 @@ public class TarjetasService {
             }
 
             tarjeta.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId));
+            tarjeta.setPagoPendiente(tarjetasRepository.pagoPendiente(uid, tarjetaId));
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta obtenida exitosamente.");

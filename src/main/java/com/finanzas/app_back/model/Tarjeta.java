@@ -23,5 +23,6 @@ public class Tarjeta {
         this.dcorte = tarjetaData.getDcorte();
         this.orden = tarjetaData.getOrden();
         this.activa = tarjetaData.isActiva();
+        this.saldo = tarjetaData.getSaldo();
     }
 }

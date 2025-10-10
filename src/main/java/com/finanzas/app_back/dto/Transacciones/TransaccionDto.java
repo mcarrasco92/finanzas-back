@@ -15,6 +15,7 @@ public class TransaccionDto {
     private String descripcion;
     private String tipo; // "Ingreso" o "Egreso"
     private String necesario; // Si o No
+    private Boolean transferencia;
 
 
 

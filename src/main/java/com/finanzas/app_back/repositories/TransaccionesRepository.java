@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.finanzas.app_back.dto.Transacciones.TransaccionDto;
-import com.finanzas.app_back.model.Tarjeta;
 import com.finanzas.app_back.model.Transaccion;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
@@ -149,6 +148,75 @@ public class TransaccionesRepository {
             transaccionesList.add(transaccion);
         }
 
+        // Recuperar las transferencias y convertirlas en TransaccionDto
+
+        CollectionReference transferenciasRef = firestore.collection("users").document(uid).collection("transferencias");
+        ApiFuture<QuerySnapshot> transferenciasSnapshot = transferenciasRef
+                .whereEqualTo("cuentaOrigenId", cuentaId)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
+                .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                .get();
+
+        for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
+            TransaccionDto transaccion = new TransaccionDto();
+            transaccion.setId(document.getId());
+            transaccion.setFecha(document.getString("fecha"));
+            transaccion.setImporte(document.getDouble("importe"));
+            transaccion.setCuentaId(document.getString("cuentaOrigenId"));
+            transaccion.setTipo("Egreso");
+            transaccion.setDescripcion("Transferencia a cuenta");
+            transaccion.setConcepto(document.getString("concepto"));
+            transaccion.setTransferencia(true);
+
+            // Obtener el nombre de la cuenta destino
+            String cuentaDestinoId = document.getString("cuentaDestinoId");
+            if (cuentaDestinoId != null && !cuentaDestinoId.isEmpty()) {
+                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaDestinoId);
+                DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
+                if (cuentaSnapshot.exists()) {
+                    String nombreCuentaDestino = cuentaSnapshot.getString("nombre");
+                    transaccion.setDescripcion("Transferencia a " + nombreCuentaDestino);
+                }
+            }
+
+            transaccionesList.add(transaccion);
+        }
+
+
+        transferenciasSnapshot = transferenciasRef
+                .whereEqualTo("cuentaDestinoId", cuentaId)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
+                .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                .get();
+
+        for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
+            TransaccionDto transaccion = new TransaccionDto();
+            transaccion.setId(document.getId());
+            transaccion.setFecha(document.getString("fecha"));
+            transaccion.setImporte(document.getDouble("importe"));
+            transaccion.setCuentaId(document.getString("cuentaOrigenId"));
+            transaccion.setTipo("Ingreso");
+            transaccion.setDescripcion("Transferencia de cuenta");
+            transaccion.setConcepto(document.getString("concepto"));
+            transaccion.setTransferencia(true);
+
+            // Obtener el nombre de la cuenta origen
+            String cuentaOrigenId = document.getString("cuentaOrigenId");
+            if (cuentaOrigenId != null && !cuentaOrigenId.isEmpty()) {
+                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigenId);
+                DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
+                if (cuentaSnapshot.exists()) {
+                    String nombreCuentaOrigen = cuentaSnapshot.getString("nombre");
+                    transaccion.setDescripcion("Transferencia de " + nombreCuentaOrigen);
+                }
+            }
+
+            transaccionesList.add(transaccion);
+        }
+
+
+
+
         return transaccionesList;
     }
 
@@ -161,6 +229,27 @@ public class TransaccionesRepository {
         // Construir el rango de fechas basado en el año y mes
         String fechaInicio = yearMonth + "-01"; // Ejemplo: "2025-10-01"
         String fechaFin = yearMonth + "-31"; // Ejemplo: "2025-10-31"
+
+        ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
+                .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                .whereEqualTo("tarjetaId", TarjetaId)
+                .get();
+
+        ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
+        for (QueryDocumentSnapshot document : querySnapshot.get().getDocuments()) {
+            TransaccionDto transaccion = document.toObject(TransaccionDto.class);
+            transaccion.setId(document.getId()); // Asigna el ID del documento a la transaccion
+
+            transaccionesList.add(transaccion);
+        }
+
+        return transaccionesList;
+    }
+
+    public ArrayList<TransaccionDto> getTransaccionesTarjetaByCut(String uid, String fechaInicio, String fechaFin, String TarjetaId)
+            throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
 
         ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
@@ -253,8 +342,7 @@ public class TransaccionesRepository {
 
     public void deleteTransaccion(String uid, String transaccionId) throws ExecutionException, InterruptedException {
 
-        DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME)
-                .document(transaccionId);
+        DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transaccionId);
         CollectionReference cuentasRef = firestore.collection("users").document(uid).collection("cuentas");
         CollectionReference terjetasRef = firestore.collection("users").document(uid).collection("tarjetas");
 

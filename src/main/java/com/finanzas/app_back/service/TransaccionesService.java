@@ -73,11 +73,7 @@ public class TransaccionesService {
     
         try {
 
-            if(filtroDto.getYearMonth() == null || filtroDto.getYearMonth().isEmpty()) {
-                response.setCoderr("1002");
-                response.setMessage("El campo 'yearMonth' es obligatorio.");
-                return response;
-            }
+            
 
             if(filtroDto.getCuentaId() != null && !filtroDto.getCuentaId().isEmpty() && filtroDto.getTarjetaId() != null && !filtroDto.getTarjetaId().isEmpty()) {
                 response.setCoderr("1002");
@@ -88,9 +84,23 @@ public class TransaccionesService {
             ArrayList<TransaccionDto> transacciones = new ArrayList<>();
 
             if(filtroDto.getCuentaId() != null && !filtroDto.getCuentaId().isEmpty()) {
+
+                if(filtroDto.getYearMonth() == null || filtroDto.getYearMonth().isEmpty()) {
+                    response.setCoderr("1002");
+                    response.setMessage("El campo 'yearMonth' es obligatorio.");
+                    return response;
+                }
+
+
                 transacciones = transaccionesRepository.getTransaccionesCuentaByMonth(uid, filtroDto.getYearMonth(), filtroDto.getCuentaId());
             } else if(filtroDto.getTarjetaId() != null && !filtroDto.getTarjetaId().isEmpty()) {
-                transacciones = transaccionesRepository.getTransaccionesTarjetaByMonth(uid, filtroDto.getYearMonth(), filtroDto.getTarjetaId());
+
+                if(filtroDto.getFechaInicio() == null || filtroDto.getFechaInicio().isEmpty() || filtroDto.getFechaFin() == null || filtroDto.getFechaFin().isEmpty()) {
+                    response.setCoderr("1002");
+                    response.setMessage("Los campos 'fechaInicio' y 'fechaFin' son obligatorios.");
+                    return response;
+                }
+                transacciones = transaccionesRepository.getTransaccionesTarjetaByCut(uid, filtroDto.getFechaInicio(), filtroDto.getFechaFin(), filtroDto.getTarjetaId());
             }else{
                 response.setCoderr("0001");
                 response.setMessage("No se informo cuenta o tarjeta para filtrar.");
