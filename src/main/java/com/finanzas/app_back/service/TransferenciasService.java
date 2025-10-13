@@ -36,7 +36,9 @@ public class TransferenciasService {
             Transferencia transferencia = new Transferencia();
             transferencia.setDataDto(dto);
 
-            if(!transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta") || transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){
+            System.out.println("Registrar transferencia" + transferencia);
+
+            if(!transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta") && !transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){
                 response.setCoderr("1003");
                 response.setMessage("El tipo de cuenta destino debe ser 'Cuenta' o 'Tarjeta'.");
                 return response;

@@ -169,15 +169,31 @@ public class TransaccionesRepository {
             transaccion.setTransferencia(true);
 
             // Obtener el nombre de la cuenta destino
-            String cuentaDestinoId = document.getString("cuentaDestinoId");
-            if (cuentaDestinoId != null && !cuentaDestinoId.isEmpty()) {
-                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaDestinoId);
-                DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
-                if (cuentaSnapshot.exists()) {
-                    String nombreCuentaDestino = cuentaSnapshot.getString("nombre");
-                    transaccion.setDescripcion("Transferencia a " + nombreCuentaDestino);
-                }
+
+            String tipoCuenta = document.getString("tipoCuentaDestino");
+            if(tipoCuenta.equals("Cuenta")) {
+                String cuentaDestinoId = document.getString("cuentaDestinoId");
+                if (cuentaDestinoId != null && !cuentaDestinoId.isEmpty()) {
+                    DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaDestinoId);
+                    DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
+                    if (cuentaSnapshot.exists()) {
+                        String nombreCuentaDestino = cuentaSnapshot.getString("nombre");
+                        transaccion.setDescripcion("Transferencia a " + nombreCuentaDestino);
+                    }
+                }    
+            }else if(tipoCuenta.equals("Tarjeta")) {
+
+                String tarjetaDestinoId = document.getString("cuentaDestinoId");
+                if (tarjetaDestinoId != null && !tarjetaDestinoId.isEmpty()) {
+                    DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas").document(tarjetaDestinoId);
+                    DocumentSnapshot tarjetaSnapshot = tarjetaRef.get().get(); // Bloquea hasta obtener el resultado
+                    if (tarjetaSnapshot.exists()) {
+                        String nombreTarjetaDestino = tarjetaSnapshot.getString("nombre");
+                        transaccion.setDescripcion("Pago a " + nombreTarjetaDestino);
+                    }
+                }    
             }
+            
 
             transaccionesList.add(transaccion);
         }
@@ -261,6 +277,42 @@ public class TransaccionesRepository {
         for (QueryDocumentSnapshot document : querySnapshot.get().getDocuments()) {
             TransaccionDto transaccion = document.toObject(TransaccionDto.class);
             transaccion.setId(document.getId()); // Asigna el ID del documento a la transaccion
+
+            transaccionesList.add(transaccion);
+        }
+
+
+        // Recuperar las transferencias y convertirlas en TransaccionDto
+
+        CollectionReference transferenciasRef = firestore.collection("users").document(uid).collection("transferencias");
+        
+        ApiFuture<QuerySnapshot> transferenciasSnapshot = transferenciasRef
+                .whereEqualTo("cuentaDestinoId", TarjetaId)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
+                .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                .get();
+
+        for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
+            TransaccionDto transaccion = new TransaccionDto();
+            transaccion.setId(document.getId());
+            transaccion.setFecha(document.getString("fecha"));
+            transaccion.setImporte(document.getDouble("importe"));
+            transaccion.setCuentaId(document.getString("cuentaOrigenId"));
+            transaccion.setTipo("Ingreso");
+            transaccion.setDescripcion("Pago de tarjeta");
+            transaccion.setConcepto(document.getString("concepto"));
+            transaccion.setTransferencia(true);
+
+            // Obtener el nombre de la cuenta origen
+            String cuentaOrigenId = document.getString("cuentaOrigenId");
+            if (cuentaOrigenId != null && !cuentaOrigenId.isEmpty()) {
+                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigenId);
+                DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
+                if (cuentaSnapshot.exists()) {
+                    String nombreCuentaOrigen = cuentaSnapshot.getString("nombre");
+                    transaccion.setDescripcion("Transferencia de " + nombreCuentaOrigen);
+                }
+            }
 
             transaccionesList.add(transaccion);
         }
