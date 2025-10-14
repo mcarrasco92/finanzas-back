@@ -14,8 +14,8 @@ public class TarjetaDto {
     private boolean activa;
     private int orden;
     private boolean transacciones;
-    
     private double pagoPendiente;
+    private double saldoPeriodoActual;
 
     public String validaCampos() {
         if (nombre == null || nombre.isEmpty()) return "El campo nombre es obligatorio.";

@@ -7,5 +7,8 @@ import lombok.Data;
 public class TarjetasList {
 
     private ArrayList<TarjetaDto> tarjetas;
+    private double saldoAPagar;
+    private double saldoTotal;
+    private double saldoMensual;
 
 }

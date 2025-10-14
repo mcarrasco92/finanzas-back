@@ -1,5 +1,7 @@
 package com.finanzas.app_back.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.finanzas.app_back.dto.GenericResponse;
 import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Tarjetas.TarjetasList;
+import com.finanzas.app_back.dto.Transacciones.TransaccionDto;
 import com.finanzas.app_back.model.Tarjeta;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
@@ -64,7 +67,46 @@ public class TarjetasService {
             }
 
             TarjetasList tarjetasList = new TarjetasList();
+
+            double saldoTotal = 0.0;
+            double saldoMensual = 0.0;
+            double saldoAPagar = 0.0;
+
+            LocalDate fechaActual = LocalDate.now();
+
+            // Formatear la fecha en el formato "yyyy-MM"
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+            String fechaFormateada = fechaActual.format(formatter);
+
+            ArrayList<TransaccionDto> transacciones = new ArrayList<>();
+
+            for(TarjetaDto tarjeta: tarjetas){
+                if(tarjeta.isActiva()){
+                    saldoTotal += tarjeta.getSaldo();
+                    
+                    transacciones = transaccionesRepository.getTransaccionesTarjetaByMonth(uid, fechaFormateada ,tarjeta.getId());
+
+                    for(TransaccionDto transaccion: transacciones){
+
+                        if(transaccion.getTipo().equals("Egreso")){
+                            saldoMensual += transaccion.getImporte();
+                        }
+                    }
+
+                    transacciones.clear();
+
+                    saldoAPagar += tarjetasRepository.pagoPendiente(uid, tarjeta.getId());
+
+                }
+
+                tarjeta.setSaldoPeriodoActual(tarjetasRepository.saldoPeriodoActual(uid, tarjeta.getId()));
+                tarjeta.setPagoPendiente(tarjetasRepository.pagoPendiente(uid, tarjeta.getId()));
+            }
+
             tarjetasList.setTarjetas(tarjetas);
+            tarjetasList.setSaldoTotal(saldoTotal);
+            tarjetasList.setSaldoMensual(saldoMensual);
+            tarjetasList.setSaldoAPagar(saldoAPagar);
 
 
             response.setCoderr("0000");

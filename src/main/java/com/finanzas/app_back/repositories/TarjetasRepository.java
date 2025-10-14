@@ -17,7 +17,6 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
-import com.google.type.Date;
 
 @Repository
 public class TarjetasRepository {
@@ -86,8 +85,29 @@ public class TarjetasRepository {
         ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
         DocumentSnapshot document = future.get();
 
-        
 
+        if (document.exists()) {
+            Tarjeta tarjeta = document.toObject(Tarjeta.class);
+
+            double saldoPeriodoActual = saldoPeriodoActual(uid, tarjetaId);
+
+            double SaldoTotal = tarjeta.getSaldo();;
+
+            double pagoPendiente = SaldoTotal - saldoPeriodoActual;
+
+            return pagoPendiente;
+            
+        } else {
+            return 0; // O lanza una excepción si prefieres
+        }
+    }
+
+
+
+    public double saldoPeriodoActual(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+        ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
+        DocumentSnapshot document = future.get();
 
         if (document.exists()) {
             Tarjeta tarjeta = document.toObject(Tarjeta.class);
@@ -124,23 +144,12 @@ public class TarjetasRepository {
                 .get();
 
             // Calcular el total pendiente
-            double totalPendiente = 0;
+            double saldoPeriodoActual = 0;
             for (QueryDocumentSnapshot transaccion : snapshot.get().getDocuments()) {
-                totalPendiente += transaccion.getDouble("importe");
+                saldoPeriodoActual += transaccion.getDouble("importe");
             }
 
-            double SaldoTotal = tarjeta.getSaldo();;
-
-            double pagoPendiente = SaldoTotal - totalPendiente;
-
-            return pagoPendiente;
-
-
-
-
-
-
-
+            return saldoPeriodoActual;
             
         } else {
             return 0; // O lanza una excepción si prefieres

@@ -16,7 +16,6 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
-import com.google.cloud.firestore.Query;
 
 @Repository
 public class TransaccionesRepository {
@@ -129,7 +128,6 @@ public class TransaccionesRepository {
         CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
 
         // yearMonth en formato "yyyy-MM", por ejemplo "2025-10"
-        System.out.println("Filtrando transacciones para el mes: " + yearMonth + " y cuentaId: " + cuentaId);
 
         // Construir el rango de fechas basado en el año y mes
         String fechaInicio = yearMonth + "-01"; // Ejemplo: "2025-10-01"
@@ -327,8 +325,6 @@ public class TransaccionesRepository {
         return transaccionesList;
     }
 
-
-
     public Boolean getExistTransaccionesByTarjeta(String uid, String TarjetaId)throws ExecutionException, InterruptedException {
         CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
 
@@ -361,14 +357,11 @@ public class TransaccionesRepository {
 
         // Verificar si hay coincidencias
         if (snapshot.isEmpty()) {
-            System.out.println("No se encontraron transacciones para la cuentaId: " + CuentaId);
             return false; // No existen transacciones con la cuentaId especificada
         } else {
-            System.out.println("Si se encontraron transacciones para la cuentaId: " + CuentaId);
             return true; // Existen transacciones con la cuentaId especificada
         }
     }
-
 
     public TransaccionDto getTransaccionById(String uid, String transaccionId)
             throws ExecutionException, InterruptedException {
@@ -391,13 +384,6 @@ public class TransaccionesRepository {
         ApiFuture<WriteResult> writeResult = transaccionRef.set(transaccion);
         writeResult.get(); // Espera a que la operación se complete
     }
-
-
-
-
-
-
-
 
     public void deleteTransaccion(String uid, String transaccionId) throws ExecutionException, InterruptedException {
 
