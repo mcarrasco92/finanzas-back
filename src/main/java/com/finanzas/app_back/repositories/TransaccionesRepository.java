@@ -16,6 +16,7 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
+import com.google.cloud.firestore.Query;
 
 @Repository
 public class TransaccionesRepository {
@@ -138,6 +139,7 @@ public class TransaccionesRepository {
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("cuentaId", cuentaId)
+                
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -155,6 +157,7 @@ public class TransaccionesRepository {
                 .whereEqualTo("cuentaOrigenId", cuentaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
@@ -203,6 +206,7 @@ public class TransaccionesRepository {
                 .whereEqualTo("cuentaDestinoId", cuentaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
@@ -250,6 +254,7 @@ public class TransaccionesRepository {
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("tarjetaId", TarjetaId)
+            
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -271,6 +276,7 @@ public class TransaccionesRepository {
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("tarjetaId", TarjetaId)
+                
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -290,6 +296,7 @@ public class TransaccionesRepository {
                 .whereEqualTo("cuentaDestinoId", TarjetaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
+                
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {

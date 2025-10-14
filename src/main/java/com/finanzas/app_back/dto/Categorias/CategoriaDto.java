@@ -9,6 +9,7 @@ public class CategoriaDto {
     private boolean activa;
     private int orden;
     private String tipo; // I - ingreso o  E - egreso
+    private boolean transacciones;
 
     public String validaCampos() {
         if (nombre == null || nombre.isEmpty()) return "El campo nombre es obligatorio.";

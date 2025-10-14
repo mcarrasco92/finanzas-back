@@ -78,5 +78,26 @@ public class CategoriasRepository {
         writeResult.get(); // Espera a que la operación se complete
     }
 
+    public Boolean getExistTransaccionesByCat(String uid, String categoriaId) throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+
+        // Consulta para catIngresoId
+        ApiFuture<QuerySnapshot> queryIngreso = transaccionesRef
+            .whereEqualTo("catIngresoId", categoriaId)
+            .get();
+
+        // Consulta para catEgresoId
+        ApiFuture<QuerySnapshot> queryEgreso = transaccionesRef
+            .whereEqualTo("catEgresoId", categoriaId)
+            .get();
+
+        // Combinar los resultados
+        boolean existeEnIngreso = !queryIngreso.get().isEmpty();
+        boolean existeEnEgreso = !queryEgreso.get().isEmpty();
+
+        return existeEnIngreso || existeEnEgreso; // Retorna true si existe en cualquiera de las dos consultas
+
+    }   
+
     
 }

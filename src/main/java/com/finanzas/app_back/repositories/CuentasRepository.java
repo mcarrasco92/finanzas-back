@@ -26,8 +26,6 @@ public class CuentasRepository {
     private static final String COLLECTION_NAME = "cuentas";
 
     public String newCuenta(String uid, Cuenta cuenta) throws ExecutionException, InterruptedException {
-
-        System.out.println("Cuenta a registrar: " + cuenta);
         
         CollectionReference cuentas = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
         DocumentReference document = cuentas.document();

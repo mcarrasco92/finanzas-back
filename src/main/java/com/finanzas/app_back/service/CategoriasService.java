@@ -83,6 +83,8 @@ public class CategoriasService {
                 return response;
             }
 
+            categoria.setTransacciones(categoriasRepository.getExistTransaccionesByCat(uid, categoriaId));
+
             response.setCoderr("0000");
             response.setMessage("Categoria obtenida exitosamente.");
             response.setData(categoria);
@@ -141,11 +143,11 @@ public class CategoriasService {
                 return response;
             }
 
-            if(categoria.isActiva()){
+            if(categoriasRepository.getExistTransaccionesByCat(uid, categoriaId)){
                 response.setCoderr("0002");
-                response.setMessage("No se puede eliminar una categoria activa.");
+                response.setMessage("No se puede eliminar la categoria porque tiene transacciones asociadas.");
                 return response;
-            }   
+            }
 
             categoriasRepository.deleteCategoria(uid, categoriaId);
 
