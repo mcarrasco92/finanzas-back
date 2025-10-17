@@ -90,10 +90,11 @@ public class TarjetasRepository {
             Tarjeta tarjeta = document.toObject(Tarjeta.class);
 
             double saldoPeriodoActual = saldoPeriodoActual(uid, tarjetaId);
+            double saldoMsiFuturos = saldoMsiFuturos(uid, tarjetaId);
 
             double SaldoTotal = tarjeta.getSaldo();;
 
-            double pagoPendiente = SaldoTotal - saldoPeriodoActual;
+            double pagoPendiente = SaldoTotal - saldoPeriodoActual - saldoMsiFuturos;
 
             return pagoPendiente;
             
@@ -123,7 +124,7 @@ public class TarjetasRepository {
 
             fechaInicio = fechaInicio.plusDays(1); // Mover al día siguiente para incluir el día de corte
 
-            if (fechaInicio.getDayOfMonth() < diaCorte) {
+            if (fechaActual.getDayOfMonth() < diaCorte) {
                 // Si el día actual es menor que el día de corte, retroceder un mes
                 fechaInicio = fechaInicio.minusMonths(1);
             }
@@ -151,6 +152,57 @@ public class TarjetasRepository {
 
             return saldoPeriodoActual;
             
+        } else {
+            return 0; // O lanza una excepción si prefieres
+        }
+    }
+
+    public double saldoMsiFuturos(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
+
+        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+        ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
+        DocumentSnapshot document = future.get();
+
+        if (document.exists()) {
+            Tarjeta tarjeta = document.toObject(Tarjeta.class);
+
+            // Obtener el día de corte como un entero
+            int diaCorte = Integer.parseInt(tarjeta.getDcorte()); //27
+
+            // Obtener la fecha actual
+            LocalDate fechaActual = LocalDate.now(); //2025-10-15
+
+            // Calcular la fecha de inicio
+            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte); //2025-10-27
+
+            fechaInicio = fechaInicio.plusDays(1); // Mover al día siguiente para incluir el día de corte //2025-10-28
+
+            if (fechaActual.getDayOfMonth() < diaCorte) {
+                // Si el día actual es menor que el día de corte, retroceder un mes
+                fechaInicio = fechaInicio.minusMonths(1); //2025-09-28
+            }
+
+            // Calcular la fecha de fin (un mes después de la fecha de inicio)
+            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1); // Restar un día para incluir el último día del período //2025-10-27
+
+            // Convertir las fechas al formato "YYYY-MM-DD"
+            String fechaInicioStr = fechaInicio.toString(); // Formato por defecto de LocalDate es "YYYY-MM-DD" //2025-09-28
+            String fechaFinStr = fechaFin.toString(); //2025-10-27
+
+            // Consultar las transacciones en el rango de fechas
+            CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+            ApiFuture<QuerySnapshot> snapshot = transaccionesRef
+                .whereEqualTo("tarjetaId", tarjetaId)
+                .whereGreaterThanOrEqualTo("fecha", fechaFinStr) // Fecha >= fechaInicio
+                .get(); // Solo necesitamos las futuras, no el rango completo
+
+            // Calcular el total pendiente
+            double saldoMsiFuturos = 0;
+            for (QueryDocumentSnapshot transaccion : snapshot.get().getDocuments()) {
+                saldoMsiFuturos += transaccion.getDouble("importe");
+            }
+
+            return saldoMsiFuturos;    
         } else {
             return 0; // O lanza una excepción si prefieres
         }

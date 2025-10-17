@@ -71,6 +71,7 @@ public class TarjetasService {
             double saldoTotal = 0.0;
             double saldoMensual = 0.0;
             double saldoAPagar = 0.0;
+            double saldoMsiFuturosIndividual = 0.0;
 
             LocalDate fechaActual = LocalDate.now();
 
@@ -81,6 +82,11 @@ public class TarjetasService {
             ArrayList<TransaccionDto> transacciones = new ArrayList<>();
 
             for(TarjetaDto tarjeta: tarjetas){
+
+                tarjeta.setSaldoPeriodoActual(tarjetasRepository.saldoPeriodoActual(uid, tarjeta.getId()));
+                saldoMsiFuturosIndividual = tarjetasRepository.saldoMsiFuturos(uid, tarjeta.getId());
+                tarjeta.setPagoPendiente(tarjeta.getSaldo() - tarjeta.getSaldoPeriodoActual() - saldoMsiFuturosIndividual);
+
                 if(tarjeta.isActiva()){
                     saldoTotal += tarjeta.getSaldo();
                     
@@ -95,12 +101,11 @@ public class TarjetasService {
 
                     transacciones.clear();
 
-                    saldoAPagar += tarjetasRepository.pagoPendiente(uid, tarjeta.getId());
+                    saldoAPagar += tarjeta.getPagoPendiente();
 
                 }
-
-                tarjeta.setSaldoPeriodoActual(tarjetasRepository.saldoPeriodoActual(uid, tarjeta.getId()));
-                tarjeta.setPagoPendiente(tarjetasRepository.pagoPendiente(uid, tarjeta.getId()));
+                
+                
             }
 
             tarjetasList.setTarjetas(tarjetas);

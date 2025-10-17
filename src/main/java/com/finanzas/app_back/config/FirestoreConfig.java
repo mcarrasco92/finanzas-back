@@ -37,4 +37,15 @@ public class FirestoreConfig {
         // Retornar la instancia de Firestore
         return FirestoreClient.getFirestore();
     }
+
+    public void closeFirestore(Firestore firestore) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                System.out.println("Cerrando conexión con Firestore...");
+                firestore.close();
+            } catch (Exception e) {
+                System.err.println("Error al cerrar Firestore: " + e.getMessage());
+            }
+        }));
+    }
 }

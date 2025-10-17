@@ -77,8 +77,6 @@ public class TransaccionesRepository {
     public String newTransaccionTarjeta(String uid, Transaccion transaccion)
             throws ExecutionException, InterruptedException {
 
-        System.out.println("Transaccion a registrar: " + transaccion);
-
         CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
         DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas")
                 .document(transaccion.getTarjetaId());
@@ -337,10 +335,8 @@ public class TransaccionesRepository {
 
         // Verificar si hay coincidencias
         if (snapshot.isEmpty()) {
-            System.out.println("No se encontraron transacciones para la tarjetaId: " + TarjetaId);
             return false; // No existen transacciones con la tarjetaId especificada
         } else {
-            System.out.println("Si se encontraron transacciones para la tarjetaId: " + TarjetaId);
             return true; // Existen transacciones con la tarjetaId especificada
         }
     }

@@ -16,6 +16,7 @@ public class TransaccionDto {
     private String tipo; // "Ingreso" o "Egreso"
     private String necesario; // Si o No
     private Boolean transferencia;
+    private String msiId; // Si es una transaccion de tarjeta y es MSI, se guarda el id del MSI
 
 
 

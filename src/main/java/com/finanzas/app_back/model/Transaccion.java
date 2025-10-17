@@ -16,6 +16,7 @@ public class Transaccion {
     private String descripcion;
     private String tipo; // "Ingreso" o "Egreso"
     private String necesario;
+    private String msiId;
 
     public void setDataDto(TransaccionDto transaccionData) {
         this.fecha = transaccionData.getFecha();
@@ -28,6 +29,7 @@ public class Transaccion {
         this.descripcion = transaccionData.getDescripcion();
         this.tipo = transaccionData.getTipo();
         this.necesario = transaccionData.getNecesario();
+        this.msiId = transaccionData.getMsiId();
     }   
 
 }
