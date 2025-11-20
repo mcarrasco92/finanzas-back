@@ -16,9 +16,6 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
-import com.google.cloud.firestore.WriteResult;
-import com.google.firestore.v1.Document;
-import com.google.protobuf.Api;
 
 @Repository
 public class MsiRepository {
@@ -32,8 +29,6 @@ public class MsiRepository {
     private TransaccionesRepository transaccionesRepository;
 
     public String newMsi(String uid, Msi msi) throws Exception {
-
-        System.out.println("MSI a registrar desde repo: " + msi);
 
         CollectionReference msis = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
         DocumentReference document = msis.document();
