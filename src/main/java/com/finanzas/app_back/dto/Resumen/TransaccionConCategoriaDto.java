@@ -15,7 +15,6 @@ public class TransaccionConCategoriaDto {
     private String concepto;
     private String descripcion;
     private String tipo;
-    private String necesario;
     private Boolean transferencia;
     private String msiId;
     private CategoriaDto categoria;

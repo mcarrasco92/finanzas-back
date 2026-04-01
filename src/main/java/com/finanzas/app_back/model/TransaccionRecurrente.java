@@ -16,7 +16,6 @@ public class TransaccionRecurrente {
     private String cuentaId;
     private String concepto;
     private String descripcion;
-    private String necesario;
     private String periodicidad; // Semanal(día de la semana)/Mensual/Bimestral/Semestral/Anual
     private String siguienteEjecucion;
 
@@ -31,7 +30,6 @@ public class TransaccionRecurrente {
         this.cuentaId = dto.getCuentaId();
         this.concepto = dto.getConcepto();
         this.descripcion = dto.getDescripcion();
-        this.necesario = dto.getNecesario();
         this.periodicidad = dto.getPeriodicidad();
     }   
 }

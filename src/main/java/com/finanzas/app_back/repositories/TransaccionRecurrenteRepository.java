@@ -69,7 +69,6 @@ public class TransaccionRecurrenteRepository {
                 movimiento.setCuentaId(transaccion.getCuentaId());
                 movimiento.setConcepto(transaccion.getConcepto());
                 movimiento.setDescripcion(transaccion.getDescripcion());
-                movimiento.setNecesario(transaccion.getNecesario());
                 movimiento.setTipo(transaccion.getTipo());
                 transaccionesService.registrarTransaccion(uid, movimiento);
         }
@@ -154,7 +153,6 @@ public class TransaccionRecurrenteRepository {
                 movimiento.setCuentaId(transaccion.getCuentaId());
                 movimiento.setConcepto(transaccion.getConcepto());
                 movimiento.setDescripcion(transaccion.getDescripcion());
-                movimiento.setNecesario(transaccion.getNecesario());
                 movimiento.setTipo(transaccion.getTipo());
                 transaccionesService.registrarTransaccion(uid, movimiento);
         }
@@ -205,7 +203,6 @@ public class TransaccionRecurrenteRepository {
                         movimiento.setCuentaId(dto.getCuentaId());
                         movimiento.setConcepto(dto.getConcepto());
                         movimiento.setDescripcion(dto.getDescripcion());
-                        movimiento.setNecesario(dto.getNecesario());
                         movimiento.setTipo(dto.getTipo());
                         transaccionesService.registrarTransaccion(uid, movimiento);
                         // Calcular el nuevo día de ejecución

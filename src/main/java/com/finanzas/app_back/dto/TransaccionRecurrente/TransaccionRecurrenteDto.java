@@ -15,7 +15,6 @@ public class TransaccionRecurrenteDto {
     private String cuentaId;
     private String concepto;
     private String descripcion;
-    private String necesario;
     private String periodicidad;
 
     public String validaCampos() {

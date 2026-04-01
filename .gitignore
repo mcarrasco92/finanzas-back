@@ -34,3 +34,5 @@ build/
 
 ### VS Code ###
 .vscode/
+firebase-pro.json
+application-pro.properties

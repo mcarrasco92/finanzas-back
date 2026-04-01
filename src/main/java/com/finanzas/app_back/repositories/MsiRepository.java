@@ -44,7 +44,6 @@ public class MsiRepository {
                 trans.setConcepto(msi.getConcepto() + " - MSI " + (i + 1) + "/" + msi.getMeses());
                 trans.setDescripcion(msi.getDescripcion());
                 trans.setImporte(msi.getImporte() / msi.getMeses());
-                trans.setNecesario(msi.getNecesario());
                 trans.setTipo("Egreso");
                 trans.setMsiId(document.getId());
 
@@ -208,7 +207,6 @@ public class MsiRepository {
                 trans.setConcepto(msi.getConcepto() + " - MSI " + (i + 1) + "/" + msi.getMeses());
                 trans.setDescripcion(msi.getDescripcion());
                 trans.setImporte(msi.getImporte() / msi.getMeses());
-                trans.setNecesario(msi.getNecesario());
                 trans.setTipo("Egreso");
                 trans.setMsiId(msiId);
 

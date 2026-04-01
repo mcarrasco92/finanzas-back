@@ -12,7 +12,6 @@ public class MsiDto {
     private String concepto;
     private String descripcion;
     private int meses;
-    private String necesario;
 
     public String validaCampos() {
         if (fecha == null || fecha.isEmpty()) return "El campo fecha es obligatorio.";

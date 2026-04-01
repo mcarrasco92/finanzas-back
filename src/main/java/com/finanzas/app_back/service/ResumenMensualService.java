@@ -132,7 +132,6 @@ public class ResumenMensualService {
             dto.setConcepto(t.getConcepto());
             dto.setDescripcion(t.getDescripcion());
             dto.setTipo(t.getTipo());
-            dto.setNecesario(t.getNecesario());
             dto.setTransferencia(t.getTransferencia());
             dto.setMsiId(t.getMsiId());
 

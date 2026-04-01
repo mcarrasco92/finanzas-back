@@ -13,8 +13,6 @@ public class Msi {
     private String concepto;
     private String descripcion;
     private int meses;
-    private String necesario;
-
     public void setData(MsiDto msiData) {
         this.fecha = msiData.getFecha();
         this.importe = msiData.getImporte();
@@ -23,6 +21,5 @@ public class Msi {
         this.concepto = msiData.getConcepto();
         this.descripcion = msiData.getDescripcion();
         this.meses = msiData.getMeses();
-        this.necesario = msiData.getNecesario();
     }
 }

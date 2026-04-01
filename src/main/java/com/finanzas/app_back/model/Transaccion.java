@@ -15,7 +15,6 @@ public class Transaccion {
     private String concepto;
     private String descripcion;
     private String tipo; // "Ingreso" o "Egreso"
-    private String necesario;
     private String msiId;
     private String[] fechas;
 
@@ -29,7 +28,6 @@ public class Transaccion {
         this.concepto = transaccionData.getConcepto();
         this.descripcion = transaccionData.getDescripcion();
         this.tipo = transaccionData.getTipo();
-        this.necesario = transaccionData.getNecesario();
         this.msiId = transaccionData.getMsiId();
     }   
 
