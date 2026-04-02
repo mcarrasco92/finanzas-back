@@ -34,7 +34,7 @@ Public routes (no JWT required): `/api/users/register`, `/api/users/create-token
 
 ### Firestore Data Model
 
-Data is stored per-user under `/users/{uid}/` with subcollections:
+Data is stored per-space under `/spaces/{spaceId}/` with subcollections:
 - `cuentas` — bank accounts
 - `transacciones` — transactions
 - `tarjetas` — credit cards
@@ -42,6 +42,16 @@ Data is stored per-user under `/users/{uid}/` with subcollections:
 - `transaccionesRecurrentes` — recurring transaction rules
 - `transferencias` — transfers between accounts/cards
 - `msi` — installment payment plans
+
+Top-level collections alongside `spaces`:
+- `spaces/{spaceId}/members/{userId}` — members with roles (`owner`, `admin`, `viewer`)
+- `invitations/{token}` — pending invitations
+
+Every service method calls `spaceRepository.validateMembership(spaceId, uid)` before querying data.
+
+### Multi-Space Architecture
+
+All feature endpoints (cuentas, transacciones, etc.) require an `X-Space-Id` header extracted in the controller via `request.getHeader("X-Space-Id")` and passed to the service. Space-management endpoints (`/api/spaces/**`, `/api/invitations/**`) do not require it. Registration automatically creates a personal space for the user.
 
 ### Key Modules
 
@@ -55,6 +65,8 @@ Data is stored per-user under `/users/{uid}/` with subcollections:
 | Transfers | `TransferenciasController` | Handles account-to-account and account-to-card |
 | Installments (MSI) | `MsiController` | Multi-installment payment plan tracking |
 | Profile | `PerfilController` | User profile updates |
+| Spaces | `SpaceController` | Create/rename/delete spaces, manage members, invitations |
+| Monthly Summary | `ResumenMensualController` | Aggregated monthly income/expense summary |
 
 ### CORS
 
