@@ -17,6 +17,7 @@ import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Transacciones.TransaccionDto;
 import com.finanzas.app_back.repositories.CategoriasRepository;
 import com.finanzas.app_back.repositories.CuentasRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
 
@@ -38,24 +39,29 @@ public class ResumenMensualService {
     @Autowired
     private CategoriasRepository categoriasRepository;
 
+    @Autowired
+    private SpaceRepository spaceRepository;
+
     private GenericResponse response = new GenericResponse();
 
-    public GenericResponse obtenerResumenMensual(String uid, int mes, int anio) {
+    public GenericResponse obtenerResumenMensual(String spaceId, String uid, int mes, int anio) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             String yearMonth = String.format("%04d-%02d", anio, mes);
 
             // ---- Cuentas ----
-            ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(uid);
+            ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(spaceId);
             List<CuentaResumenDto> cuentasResumen = new ArrayList<>();
 
             for (CuentaDto cuenta : cuentas) {
                 ArrayList<TransaccionDto> transacciones =
-                        transaccionesRepository.getTransaccionesCuentaByMonth(uid, yearMonth, cuenta.getId());
+                        transaccionesRepository.getTransaccionesCuentaByMonth(spaceId, yearMonth, cuenta.getId());
 
                 List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                        enriquecerConCategoria(uid, transacciones);
+                        enriquecerConCategoria(spaceId, transacciones);
 
                 CuentaResumenDto cuentaResumen = new CuentaResumenDto();
                 cuentaResumen.setId(cuenta.getId());
@@ -73,15 +79,15 @@ public class ResumenMensualService {
             }
 
             // ---- Tarjetas ----
-            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(uid);
+            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
             List<TarjetaResumenDto> tarjetasResumen = new ArrayList<>();
 
             for (TarjetaDto tarjeta : tarjetas) {
                 ArrayList<TransaccionDto> transacciones =
-                        transaccionesRepository.getTransaccionesTarjetaByMonth(uid, yearMonth, tarjeta.getId());
+                        transaccionesRepository.getTransaccionesTarjetaByMonth(spaceId, yearMonth, tarjeta.getId());
 
                 List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                        enriquecerConCategoria(uid, transacciones);
+                        enriquecerConCategoria(spaceId, transacciones);
 
                 TarjetaResumenDto tarjetaResumen = new TarjetaResumenDto();
                 tarjetaResumen.setId(tarjeta.getId());
@@ -115,7 +121,7 @@ public class ResumenMensualService {
         return response;
     }
 
-    private List<TransaccionConCategoriaDto> enriquecerConCategoria(String uid, List<TransaccionDto> transacciones)
+    private List<TransaccionConCategoriaDto> enriquecerConCategoria(String spaceId, List<TransaccionDto> transacciones)
             throws Exception {
 
         List<TransaccionConCategoriaDto> resultado = new ArrayList<>();
@@ -137,9 +143,9 @@ public class ResumenMensualService {
 
             CategoriaDto categoria = null;
             if (t.getCatIngresoId() != null && !t.getCatIngresoId().isEmpty()) {
-                categoria = categoriasRepository.getCategoriaById(uid, t.getCatIngresoId());
+                categoria = categoriasRepository.getCategoriaById(spaceId, t.getCatIngresoId());
             } else if (t.getCatEgresoId() != null && !t.getCatEgresoId().isEmpty()) {
-                categoria = categoriasRepository.getCategoriaById(uid, t.getCatEgresoId());
+                categoria = categoriasRepository.getCategoriaById(spaceId, t.getCatEgresoId());
             }
             dto.setCategoria(categoria);
 

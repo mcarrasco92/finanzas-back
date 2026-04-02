@@ -25,13 +25,13 @@ public class TransaccionesRepository {
 
     private static final String COLLECTION_NAME = "transacciones";
 
-    public String newTransaccionCuenta(String uid, Transaccion transaccion)
+    public String newTransaccionCuenta(String spaceId, Transaccion transaccion)
             throws ExecutionException, InterruptedException {
 
         System.out.println("Transaccion a registrar: " + transaccion);
 
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
-        DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas")
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
+        DocumentReference cuentaRef = firestore.collection("spaces").document(spaceId).collection("cuentas")
                 .document(transaccion.getCuentaId());
 
         // Ejecutar la transacción
@@ -74,11 +74,11 @@ public class TransaccionesRepository {
         return future.get();
     }
 
-    public String newTransaccionTarjeta(String uid, Transaccion transaccion)
+    public String newTransaccionTarjeta(String spaceId, Transaccion transaccion)
             throws ExecutionException, InterruptedException {
 
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas")
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection("tarjetas")
                 .document(transaccion.getTarjetaId());
 
         // Ejecutar la transacción
@@ -121,9 +121,9 @@ public class TransaccionesRepository {
         return future.get();
     }
 
-    public ArrayList<TransaccionDto> getTransaccionesCuentaByMonth(String uid, String yearMonth, String cuentaId)
+    public ArrayList<TransaccionDto> getTransaccionesCuentaByMonth(String spaceId, String yearMonth, String cuentaId)
             throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
 
         // yearMonth en formato "yyyy-MM", por ejemplo "2025-10"
 
@@ -135,7 +135,7 @@ public class TransaccionesRepository {
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("cuentaId", cuentaId)
-                
+
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -148,12 +148,12 @@ public class TransaccionesRepository {
 
         // Recuperar las transferencias y convertirlas en TransaccionDto
 
-        CollectionReference transferenciasRef = firestore.collection("users").document(uid).collection("transferencias");
+        CollectionReference transferenciasRef = firestore.collection("spaces").document(spaceId).collection("transferencias");
         ApiFuture<QuerySnapshot> transferenciasSnapshot = transferenciasRef
                 .whereEqualTo("cuentaOrigenId", cuentaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
-                
+
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
@@ -173,26 +173,26 @@ public class TransaccionesRepository {
             if(tipoCuenta.equals("Cuenta")) {
                 String cuentaDestinoId = document.getString("cuentaDestinoId");
                 if (cuentaDestinoId != null && !cuentaDestinoId.isEmpty()) {
-                    DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaDestinoId);
+                    DocumentReference cuentaRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaDestinoId);
                     DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
                     if (cuentaSnapshot.exists()) {
                         String nombreCuentaDestino = cuentaSnapshot.getString("nombre");
                         transaccion.setDescripcion("Transferencia a " + nombreCuentaDestino);
                     }
-                }    
+                }
             }else if(tipoCuenta.equals("Tarjeta")) {
 
                 String tarjetaDestinoId = document.getString("cuentaDestinoId");
                 if (tarjetaDestinoId != null && !tarjetaDestinoId.isEmpty()) {
-                    DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas").document(tarjetaDestinoId);
+                    DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection("tarjetas").document(tarjetaDestinoId);
                     DocumentSnapshot tarjetaSnapshot = tarjetaRef.get().get(); // Bloquea hasta obtener el resultado
                     if (tarjetaSnapshot.exists()) {
                         String nombreTarjetaDestino = tarjetaSnapshot.getString("nombre");
                         transaccion.setDescripcion("Pago a " + nombreTarjetaDestino);
                     }
-                }    
+                }
             }
-            
+
 
             transaccionesList.add(transaccion);
         }
@@ -202,7 +202,7 @@ public class TransaccionesRepository {
                 .whereEqualTo("cuentaDestinoId", cuentaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
-                
+
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
@@ -219,7 +219,7 @@ public class TransaccionesRepository {
             // Obtener el nombre de la cuenta origen
             String cuentaOrigenId = document.getString("cuentaOrigenId");
             if (cuentaOrigenId != null && !cuentaOrigenId.isEmpty()) {
-                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigenId);
+                DocumentReference cuentaRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaOrigenId);
                 DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
                 if (cuentaSnapshot.exists()) {
                     String nombreCuentaOrigen = cuentaSnapshot.getString("nombre");
@@ -236,9 +236,9 @@ public class TransaccionesRepository {
         return transaccionesList;
     }
 
-    public ArrayList<TransaccionDto> getTransaccionesTarjetaByMonth(String uid, String yearMonth, String TarjetaId)
+    public ArrayList<TransaccionDto> getTransaccionesTarjetaByMonth(String spaceId, String yearMonth, String TarjetaId)
             throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
 
         // yearMonth en formato "yyyy-MM", por ejemplo "2025-10"
 
@@ -250,7 +250,7 @@ public class TransaccionesRepository {
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("tarjetaId", TarjetaId)
-            
+
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -264,15 +264,15 @@ public class TransaccionesRepository {
         return transaccionesList;
     }
 
-    public ArrayList<TransaccionDto> getTransaccionesTarjetaByCut(String uid, String fechaInicio, String fechaFin, String TarjetaId)
+    public ArrayList<TransaccionDto> getTransaccionesTarjetaByCut(String spaceId, String fechaInicio, String fechaFin, String TarjetaId)
             throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
 
         ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
                 .whereEqualTo("tarjetaId", TarjetaId)
-                
+
                 .get();
 
         ArrayList<TransaccionDto> transaccionesList = new ArrayList<>();
@@ -286,13 +286,13 @@ public class TransaccionesRepository {
 
         // Recuperar las transferencias y convertirlas en TransaccionDto
 
-        CollectionReference transferenciasRef = firestore.collection("users").document(uid).collection("transferencias");
-        
+        CollectionReference transferenciasRef = firestore.collection("spaces").document(spaceId).collection("transferencias");
+
         ApiFuture<QuerySnapshot> transferenciasSnapshot = transferenciasRef
                 .whereEqualTo("cuentaDestinoId", TarjetaId)
                 .whereGreaterThanOrEqualTo("fecha", fechaInicio) // Fecha >= fechaInicio
                 .whereLessThanOrEqualTo("fecha", fechaFin) // Fecha <= fechaFin
-                
+
                 .get();
 
         for (QueryDocumentSnapshot document : transferenciasSnapshot.get().getDocuments()) {
@@ -309,7 +309,7 @@ public class TransaccionesRepository {
             // Obtener el nombre de la cuenta origen
             String cuentaOrigenId = document.getString("cuentaOrigenId");
             if (cuentaOrigenId != null && !cuentaOrigenId.isEmpty()) {
-                DocumentReference cuentaRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigenId);
+                DocumentReference cuentaRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaOrigenId);
                 DocumentSnapshot cuentaSnapshot = cuentaRef.get().get(); // Bloquea hasta obtener el resultado
                 if (cuentaSnapshot.exists()) {
                     String nombreCuentaOrigen = cuentaSnapshot.getString("nombre");
@@ -323,8 +323,8 @@ public class TransaccionesRepository {
         return transaccionesList;
     }
 
-    public Boolean getExistTransaccionesByTarjeta(String uid, String TarjetaId)throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+    public Boolean getExistTransaccionesByTarjeta(String spaceId, String TarjetaId)throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
 
         ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
                 .whereEqualTo("tarjetaId", TarjetaId)
@@ -341,8 +341,8 @@ public class TransaccionesRepository {
         }
     }
 
-    public Boolean getExistTransaccionesByCuenta(String uid, String CuentaId)throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+    public Boolean getExistTransaccionesByCuenta(String spaceId, String CuentaId)throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
 
         ApiFuture<QuerySnapshot> querySnapshot = transaccionesRef
                 .whereEqualTo("cuentaId", CuentaId)
@@ -359,9 +359,9 @@ public class TransaccionesRepository {
         }
     }
 
-    public TransaccionDto getTransaccionById(String uid, String transaccionId)
+    public TransaccionDto getTransaccionById(String spaceId, String transaccionId)
             throws ExecutionException, InterruptedException {
-        DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME)
+        DocumentReference transaccionRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME)
                 .document(transaccionId);
         ApiFuture<DocumentSnapshot> future = transaccionRef.get();
         DocumentSnapshot document = future.get();
@@ -375,17 +375,17 @@ public class TransaccionesRepository {
         }
     }
 
-   public void updateTransaccion(String uid, String transaccionId, Transaccion transaccion) throws ExecutionException, InterruptedException {
-        DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transaccionId);
+   public void updateTransaccion(String spaceId, String transaccionId, Transaccion transaccion) throws ExecutionException, InterruptedException {
+        DocumentReference transaccionRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(transaccionId);
         ApiFuture<WriteResult> writeResult = transaccionRef.set(transaccion);
         writeResult.get(); // Espera a que la operación se complete
     }
 
-    public void deleteTransaccion(String uid, String transaccionId) throws ExecutionException, InterruptedException {
+    public void deleteTransaccion(String spaceId, String transaccionId) throws ExecutionException, InterruptedException {
 
-        DocumentReference transaccionRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transaccionId);
-        CollectionReference cuentasRef = firestore.collection("users").document(uid).collection("cuentas");
-        CollectionReference terjetasRef = firestore.collection("users").document(uid).collection("tarjetas");
+        DocumentReference transaccionRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(transaccionId);
+        CollectionReference cuentasRef = firestore.collection("spaces").document(spaceId).collection("cuentas");
+        CollectionReference terjetasRef = firestore.collection("spaces").document(spaceId).collection("tarjetas");
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
             // Leer la transacción a eliminar

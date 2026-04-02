@@ -2,7 +2,6 @@ package com.finanzas.app_back.repositories;
 
 import java.util.concurrent.ExecutionException;
 
-import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +14,6 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
-import com.google.firestore.v1.Document;
 
 @Repository
 public class TransferenciasRepository {
@@ -25,73 +23,67 @@ public class TransferenciasRepository {
 
     private static final String COLLECTION_NAME = "transferencias";
 
-    public String newTransferenciaCuenta(String uid, Transferencia transferencia, CuentaDto cuentaOrigen, CuentaDto cuentaDestino ) throws ExecutionException, InterruptedException{
+    public String newTransferenciaCuenta(String spaceId, Transferencia transferencia, CuentaDto cuentaOrigen, CuentaDto cuentaDestino) throws ExecutionException, InterruptedException {
 
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
-        DocumentReference cuentaOrigenRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigen.getId());
-        DocumentReference cuentaDestinoRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaDestino.getId());
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
+        DocumentReference cuentaOrigenRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaOrigen.getId());
+        DocumentReference cuentaDestinoRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaDestino.getId());
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
             ApiFuture<DocumentSnapshot> cuentaOrigenSnapshotFuture = transaction.get(cuentaOrigenRef);
-            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get();
 
             if (!cuentaOrigenSnapshot.exists()) {
                 throw new RuntimeException("La cuenta origen especificada no existe.");
             }
 
             ApiFuture<DocumentSnapshot> cuentaDestinoSnapshotFuture = transaction.get(cuentaDestinoRef);
-            DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get();
             if (!cuentaDestinoSnapshot.exists()) {
                 throw new RuntimeException("La cuenta destino especificada no existe.");
             }
 
             double nuevoSaldoOrigen = cuentaOrigen.getSaldo() - transferencia.getImporte();
-
             transaction.update(cuentaOrigenRef, "saldo", nuevoSaldoOrigen);
 
             double nuevoSaldoDestino = cuentaDestino.getSaldo() + transferencia.getImporte();
-
             transaction.update(cuentaDestinoRef, "saldo", nuevoSaldoDestino);
 
             DocumentReference newTransaccionRef = transaccionesRef.document();
             transaction.set(newTransaccionRef, transferencia);
 
             return newTransaccionRef.getId();
-
         });
 
         return future.get();
-
     }
 
-    public String newTransferenciaTarjeta(String uid, Transferencia transferencia, CuentaDto cuentaOrigen, TarjetaDto tarjetaDestino) throws ExecutionException, InterruptedException{
+    public String newTransferenciaTarjeta(String spaceId, Transferencia transferencia, CuentaDto cuentaOrigen, TarjetaDto tarjetaDestino) throws ExecutionException, InterruptedException {
 
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
-        DocumentReference cuentaOrigenRef = firestore.collection("users").document(uid).collection("cuentas").document(cuentaOrigen.getId());
-        DocumentReference tarjetaDestinoRef = firestore.collection("users").document(uid).collection("tarjetas").document(tarjetaDestino.getId());
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
+        DocumentReference cuentaOrigenRef = firestore.collection("spaces").document(spaceId).collection("cuentas").document(cuentaOrigen.getId());
+        DocumentReference tarjetaDestinoRef = firestore.collection("spaces").document(spaceId).collection("tarjetas").document(tarjetaDestino.getId());
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
             ApiFuture<DocumentSnapshot> cuentaOrigenSnapshotFuture = transaction.get(cuentaOrigenRef);
-            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get();
 
             if (!cuentaOrigenSnapshot.exists()) {
                 throw new RuntimeException("La cuenta origen especificada no existe.");
             }
 
             ApiFuture<DocumentSnapshot> tarjetaDestinoSnapshotFuture = transaction.get(tarjetaDestinoRef);
-            DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get();
             if (!tarjetaDestinoSnapshot.exists()) {
                 throw new RuntimeException("La tarjeta destino especificada no existe.");
             }
 
             double nuevoSaldoOrigen = cuentaOrigen.getSaldo() - transferencia.getImporte();
-
             transaction.update(cuentaOrigenRef, "saldo", nuevoSaldoOrigen);
 
             double nuevoSaldoDestino = tarjetaDestino.getSaldo() - transferencia.getImporte();
-
             transaction.update(tarjetaDestinoRef, "saldo", nuevoSaldoDestino);
 
             DocumentReference newTransaccionRef = transaccionesRef.document();
@@ -101,11 +93,10 @@ public class TransferenciasRepository {
         });
 
         return future.get();
-
     }
-    
-    public TransferenciaDto getTransferenciaById(String uid, String transferenciaId) throws ExecutionException, InterruptedException {
-        DocumentReference docRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transferenciaId);
+
+    public TransferenciaDto getTransferenciaById(String spaceId, String transferenciaId) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(transferenciaId);
         ApiFuture<DocumentSnapshot> future = docRef.get();
         DocumentSnapshot document = future.get();
 
@@ -123,16 +114,16 @@ public class TransferenciasRepository {
         }
     }
 
-    public void deleteTransferencia(String uid, String transferenciaId) throws ExecutionException, InterruptedException {
+    public void deleteTransferencia(String spaceId, String transferenciaId) throws ExecutionException, InterruptedException {
 
-        DocumentReference transferenciaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transferenciaId);
-        CollectionReference cuentasRef = firestore.collection("users").document(uid).collection("cuentas");
-        CollectionReference terjetasRef = firestore.collection("users").document(uid).collection("tarjetas");
+        DocumentReference transferenciaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(transferenciaId);
+        CollectionReference cuentasRef = firestore.collection("spaces").document(spaceId).collection("cuentas");
+        CollectionReference terjetasRef = firestore.collection("spaces").document(spaceId).collection("tarjetas");
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
             ApiFuture<DocumentSnapshot> transferenciaSnapshotFuture = transaction.get(transferenciaRef);
-            DocumentSnapshot transferenciaSnapshot = transferenciaSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot transferenciaSnapshot = transferenciaSnapshotFuture.get();
 
             if (!transferenciaSnapshot.exists()) {
                 throw new RuntimeException("La transferencia especificada no existe.");
@@ -143,33 +134,32 @@ public class TransferenciasRepository {
                 throw new RuntimeException("Error al convertir la transferencia.");
             }
 
-
             DocumentReference cuentaOrigenRef = cuentasRef.document(transferencia.getCuentaOrigenId());
             ApiFuture<DocumentSnapshot> cuentaOrigenSnapshotFuture = transaction.get(cuentaOrigenRef);
-            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+            DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get();
 
             if (!cuentaOrigenSnapshot.exists()) {
                 throw new RuntimeException("La cuenta origen especificada no existe.");
             }
 
             double nuevoSaldoOrigen = cuentaOrigenSnapshot.getDouble("saldo") + transferencia.getImporte();
-            
+
             if (transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")) {
-                
+
                 try {
                     DocumentReference cuentaDestinoRef = cuentasRef.document(transferencia.getCuentaDestinoId());
                     ApiFuture<DocumentSnapshot> cuentaDestinoSnapshotFuture = transaction.get(cuentaDestinoRef);
-                    DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
-            
+                    DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get();
+
                     if (!cuentaDestinoSnapshot.exists()) {
                         throw new RuntimeException("La cuenta destino especificada no existe.");
                     }
-            
+
                     double nuevoSaldoDestino = cuentaDestinoSnapshot.getDouble("saldo") - transferencia.getImporte();
                     transaction.update(cuentaDestinoRef, "saldo", nuevoSaldoDestino);
                 } catch (Exception e) {
                     System.err.println("Error al obtener o actualizar la cuenta destino: " + e.getMessage());
-                    throw e; // Relanzar la excepción para que la transacción falle
+                    throw e;
                 }
 
             } else if (transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")) {
@@ -177,7 +167,7 @@ public class TransferenciasRepository {
                 try {
                     DocumentReference tarjetaDestinoRef = terjetasRef.document(transferencia.getCuentaDestinoId());
                     ApiFuture<DocumentSnapshot> tarjetaDestinoSnapshotFuture = transaction.get(tarjetaDestinoRef);
-                    DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                    DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get();
 
                     if (!tarjetaDestinoSnapshot.exists()) {
                         throw new RuntimeException("La tarjeta destino especificada no existe.");
@@ -189,40 +179,34 @@ public class TransferenciasRepository {
                     transaction.update(tarjetaDestinoRef, "saldo", nuevoSaldoDestino);
                 } catch (Exception e) {
                     System.err.println("Error al obtener o actualizar la tarjeta destino: " + e.getMessage());
-                    throw e; // Relanzar la excepción para que la transacción falle
+                    throw e;
                 }
-                
+
             }
-
-
-            //Actualizar los saldos de las cuentas involucradas
 
             try {
                 transaction.update(cuentaOrigenRef, "saldo", nuevoSaldoOrigen);
                 transaction.delete(transferenciaRef);
             } catch (Exception e) {
                 System.err.println("Error al actualizar el saldo de la cuenta origen o eliminar la transferencia: " + e.getMessage());
-                throw e; // Relanzar la excepción para que la transacción falle
+                throw e;
             }
-            
 
             return "Transferencia eliminada y saldos actualizados.";
+        });
 
-         });
-        
     }
-    
-    
-    public TransferenciaDto updateTransferencia(String uid, String transferenciaId, TransferenciaDto transferenciaData) {
 
-            System.out.println("Actualizando transferencia ID: " + transferenciaId + " para usuario UID: " + uid);
+
+    public TransferenciaDto updateTransferencia(String spaceId, String transferenciaId, TransferenciaDto transferenciaData) {
+
+            System.out.println("Actualizando transferencia ID: " + transferenciaId + " para space ID: " + spaceId);
 
         try {
 
-            DocumentReference transferenciaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(transferenciaId);
-            CollectionReference cuentasRef = firestore.collection("users").document(uid).collection("cuentas");
-            CollectionReference terjetasRef = firestore.collection("users").document(uid).collection("tarjetas");
-
+            DocumentReference transferenciaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(transferenciaId);
+            CollectionReference cuentasRef = firestore.collection("spaces").document(spaceId).collection("cuentas");
+            CollectionReference terjetasRef = firestore.collection("spaces").document(spaceId).collection("tarjetas");
 
             ApiFuture<TransferenciaDto> future = firestore.runTransaction(transaction -> {
 
@@ -252,12 +236,8 @@ public class TransferenciasRepository {
                 double nuevoSaldoNuevaTarjetaDestino = 0;
                 Boolean actualizarNuevaTarjetaDestino = false;
 
-
-
-
-
                 ApiFuture<DocumentSnapshot> transferenciaSnapshotFuture = transaction.get(transferenciaRef);
-                DocumentSnapshot transferenciaSnapshot = transferenciaSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                DocumentSnapshot transferenciaSnapshot = transferenciaSnapshotFuture.get();
 
                 if (!transferenciaSnapshot.exists()) {
                     throw new RuntimeException("La transferencia especificada no existe.");
@@ -268,31 +248,25 @@ public class TransferenciasRepository {
                     throw new RuntimeException("Error al convertir la transferencia.");
                 }
 
-                //Cuenta origen
-
                 System.out.println("Cuenta Origen Original ID: " + transferenciaOriginalDto.getCuentaOrigenId());
 
-                if(!transferenciaOriginalDto.getCuentaOrigenId().equals(transferenciaData.getCuentaOrigenId())){ ////////// Cuenta origen es diferente
+                if (!transferenciaOriginalDto.getCuentaOrigenId().equals(transferenciaData.getCuentaOrigenId())) {
 
                     System.out.println("Cuenta Origen Nueva ID: " + transferenciaData.getCuentaOrigenId());
 
-                    // Actualizar saldos de las cuentas origen
-
-                    //Cuenta Origen Original
                     cuentaOrigenRef = cuentasRef.document(transferenciaOriginalDto.getCuentaOrigenId());
                     ApiFuture<DocumentSnapshot> cuentaOrigenSnapshotFuture = transaction.get(cuentaOrigenRef);
-                    DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                    DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get();
 
                     if (!cuentaOrigenSnapshot.exists()) {
                         throw new RuntimeException("La cuenta origen especificada no existe.");
                     }
                     nuevoSaldoOrigen = cuentaOrigenSnapshot.getDouble("saldo") + transferenciaOriginalDto.getImporte();
                     actualizarCuentaOrigen = true;
-                    
-                    //Nueva Cuenta Origen
+
                     nuevaCuentaOrigenRef = cuentasRef.document(transferenciaData.getCuentaOrigenId());
                     ApiFuture<DocumentSnapshot> nuevaCuentaOrigenSnapshotFuture = transaction.get(nuevaCuentaOrigenRef);
-                    DocumentSnapshot nuevaCuentaOrigenSnapshot = nuevaCuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                    DocumentSnapshot nuevaCuentaOrigenSnapshot = nuevaCuentaOrigenSnapshotFuture.get();
 
                     if (!nuevaCuentaOrigenSnapshot.exists()) {
                         throw new RuntimeException("La nueva cuenta origen especificada no existe.");
@@ -300,15 +274,15 @@ public class TransferenciasRepository {
                     nuevoSaldoNuevaOrigen = nuevaCuentaOrigenSnapshot.getDouble("saldo") - transferenciaData.getImporte();
                     actualizarNuevaCuentaOrigen = true;
 
-                }else{ ////////// Cuenta origen es la misma
+                } else {
 
                     System.out.println("Cuenta Origen No Cambia ID: " + transferenciaData.getCuentaOrigenId());
 
-                    if(!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) { ////////// Monto es diferente
+                    if (!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) {
 
                         cuentaOrigenRef = cuentasRef.document(transferenciaOriginalDto.getCuentaOrigenId());
                         ApiFuture<DocumentSnapshot> cuentaOrigenSnapshotFuture = transaction.get(cuentaOrigenRef);
-                        DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                        DocumentSnapshot cuentaOrigenSnapshot = cuentaOrigenSnapshotFuture.get();
 
                         if (!cuentaOrigenSnapshot.exists()) {
                             throw new RuntimeException("La cuenta origen especificada no existe.");
@@ -318,23 +292,17 @@ public class TransferenciasRepository {
                         nuevoSaldoOrigen = cuentaOrigenSnapshot.getDouble("saldo") - diferenciaImporte;
                         actualizarCuentaOrigen = true;
                     }
-
                 }
-
-
-                //Cuenta destino o Tarjeta destino
 
                 System.out.println("Tipo Cuenta Destino Original: " + transferenciaOriginalDto.getTipoCuentaDestino());
 
-                if(transferenciaOriginalDto.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")){ ////////// Cuenta destino original
+                if (transferenciaOriginalDto.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")) {
 
-                    if(!transferenciaOriginalDto.getCuentaDestinoId().equals(transferenciaData.getCuentaDestinoId())){ ////////// Cuenta destino es diferente
-
-                        // Actualizar saldo de la cuenta destino original
+                    if (!transferenciaOriginalDto.getCuentaDestinoId().equals(transferenciaData.getCuentaDestinoId())) {
 
                         cuentaDestinoRef = cuentasRef.document(transferenciaOriginalDto.getCuentaDestinoId());
                         ApiFuture<DocumentSnapshot> cuentaDestinoSnapshotFuture = transaction.get(cuentaDestinoRef);
-                        DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                        DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get();
 
                         if (!cuentaDestinoSnapshot.exists()) {
                             throw new RuntimeException("La cuenta destino especificada no existe.");
@@ -343,10 +311,9 @@ public class TransferenciasRepository {
                         nuevoSaldoDestino = cuentaDestinoSnapshot.getDouble("saldo") - transferenciaOriginalDto.getImporte();
                         actualizarCuentaDestino = true;
 
-                        // Actualizar saldo de la nueva cuenta destino
                         nuevaCuentaDestinoRef = cuentasRef.document(transferenciaData.getCuentaDestinoId());
                         ApiFuture<DocumentSnapshot> nuevaCuentaDestinoSnapshotFuture = transaction.get(nuevaCuentaDestinoRef);
-                        DocumentSnapshot nuevaCuentaDestinoSnapshot = nuevaCuentaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                        DocumentSnapshot nuevaCuentaDestinoSnapshot = nuevaCuentaDestinoSnapshotFuture.get();
 
                         if (!nuevaCuentaDestinoSnapshot.exists()) {
                             throw new RuntimeException("La nueva cuenta destino especificada no existe.");
@@ -354,12 +321,12 @@ public class TransferenciasRepository {
                         nuevoSaldoNuevaDestino = nuevaCuentaDestinoSnapshot.getDouble("saldo") + transferenciaData.getImporte();
                         actualizarNuevaCuentaDestino = true;
 
-                    }else{
-                        if(!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) { ////////// Monto es diferente
+                    } else {
+                        if (!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) {
 
                             cuentaDestinoRef = cuentasRef.document(transferenciaOriginalDto.getCuentaDestinoId());
                             ApiFuture<DocumentSnapshot> cuentaDestinoSnapshotFuture = transaction.get(cuentaDestinoRef);
-                            DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                            DocumentSnapshot cuentaDestinoSnapshot = cuentaDestinoSnapshotFuture.get();
 
                             if (!cuentaDestinoSnapshot.exists()) {
                                 throw new RuntimeException("La cuenta destino especificada no existe.");
@@ -370,16 +337,14 @@ public class TransferenciasRepository {
                             actualizarCuentaDestino = true;
                         }
                     }
-                    
-                }else if(transferenciaOriginalDto.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){ ////////// Tarjeta destino original
 
-                    if(!transferenciaOriginalDto.getCuentaDestinoId().equals(transferenciaData.getCuentaDestinoId())){ ////////// Tarjeta destino es diferente
+                } else if (transferenciaOriginalDto.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")) {
 
-                        // Actualizar saldo de la tarjeta destino original
+                    if (!transferenciaOriginalDto.getCuentaDestinoId().equals(transferenciaData.getCuentaDestinoId())) {
 
                         tarjetaDestinoRef = terjetasRef.document(transferenciaOriginalDto.getCuentaDestinoId());
                         ApiFuture<DocumentSnapshot> tarjetaDestinoSnapshotFuture = transaction.get(tarjetaDestinoRef);
-                        DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                        DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get();
 
                         if (!tarjetaDestinoSnapshot.exists()) {
                             throw new RuntimeException("La tarjeta destino especificada no existe.");
@@ -388,10 +353,9 @@ public class TransferenciasRepository {
                         nuevoSaldoTarjetaDestino = tarjetaDestinoSnapshot.getDouble("saldo") + transferenciaOriginalDto.getImporte();
                         actualizarTarjetaDestino = true;
 
-                        // Actualizar saldo de la nueva tarjeta destino
                         nuevaTarjetaDestinoRef = terjetasRef.document(transferenciaData.getCuentaDestinoId());
                         ApiFuture<DocumentSnapshot> nuevaTarjetaDestinoSnapshotFuture = transaction.get(nuevaTarjetaDestinoRef);
-                        DocumentSnapshot nuevaTarjetaDestinoSnapshot = nuevaTarjetaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                        DocumentSnapshot nuevaTarjetaDestinoSnapshot = nuevaTarjetaDestinoSnapshotFuture.get();
 
                         if (!nuevaTarjetaDestinoSnapshot.exists()) {
                             throw new RuntimeException("La nueva tarjeta destino especificada no existe.");
@@ -399,12 +363,12 @@ public class TransferenciasRepository {
                         nuevoSaldoNuevaTarjetaDestino = nuevaTarjetaDestinoSnapshot.getDouble("saldo") - transferenciaData.getImporte();
                         actualizarNuevaTarjetaDestino = true;
 
-                    }else{
-                        if(!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) { ////////// Monto es diferente
+                    } else {
+                        if (!transferenciaOriginalDto.getImporte().equals(transferenciaData.getImporte())) {
 
                             tarjetaDestinoRef = terjetasRef.document(transferenciaOriginalDto.getCuentaDestinoId());
                             ApiFuture<DocumentSnapshot> tarjetaDestinoSnapshotFuture = transaction.get(tarjetaDestinoRef);
-                            DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get(); // Obtener el DocumentSnapshot
+                            DocumentSnapshot tarjetaDestinoSnapshot = tarjetaDestinoSnapshotFuture.get();
 
                             if (!tarjetaDestinoSnapshot.exists()) {
                                 throw new RuntimeException("La tarjeta destino especificada no existe.");
@@ -415,25 +379,24 @@ public class TransferenciasRepository {
                             actualizarTarjetaDestino = true;
                         }
                     }
-
                 }
-                
-                if(actualizarCuentaOrigen) {
+
+                if (actualizarCuentaOrigen) {
                     transaction.update(cuentaOrigenRef, "saldo", nuevoSaldoOrigen);
                 }
                 if (actualizarNuevaCuentaOrigen) {
                     transaction.update(nuevaCuentaOrigenRef, "saldo", nuevoSaldoNuevaOrigen);
                 }
-                if(actualizarCuentaDestino) {
+                if (actualizarCuentaDestino) {
                     transaction.update(cuentaDestinoRef, "saldo", nuevoSaldoDestino);
                 }
-                if(actualizarNuevaCuentaDestino) {
+                if (actualizarNuevaCuentaDestino) {
                     transaction.update(nuevaCuentaDestinoRef, "saldo", nuevoSaldoNuevaDestino);
                 }
-                if(actualizarTarjetaDestino) {
+                if (actualizarTarjetaDestino) {
                     transaction.update(tarjetaDestinoRef, "saldo", nuevoSaldoTarjetaDestino);
                 }
-                if(actualizarNuevaTarjetaDestino) {
+                if (actualizarNuevaTarjetaDestino) {
                     transaction.update(nuevaTarjetaDestinoRef, "saldo", nuevoSaldoNuevaTarjetaDestino);
                 }
 
@@ -448,15 +411,14 @@ public class TransferenciasRepository {
                 transaction.set(transferenciaRef, updatedTransferencia);
 
                 return transferenciaData;
-
             });
-            
+
         } catch (Exception e) {
             System.err.println("Error al actualizar la transferencia: " + e.getMessage());
         }
 
         return null;
-        
+
     }
 
 }

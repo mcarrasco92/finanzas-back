@@ -9,6 +9,7 @@ import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Transferencias.TransferenciaDto;
 import com.finanzas.app_back.model.Transferencia;
 import com.finanzas.app_back.repositories.CuentasRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 import com.finanzas.app_back.repositories.TransferenciasRepository;
 
@@ -27,11 +28,16 @@ public class TransferenciasService {
     @Autowired
     private GeneralService generalService;
 
+    @Autowired
+    private SpaceRepository spaceRepository;
+
     private GenericResponse response = new GenericResponse();
 
-    public GenericResponse registrarTransferencia(String uid ,TransferenciaDto dto) {
+    public GenericResponse registrarTransferencia(String spaceId, String uid, TransferenciaDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Transferencia transferencia = new Transferencia();
             transferencia.setDataDto(dto);
@@ -56,7 +62,7 @@ public class TransferenciasService {
                 return response;
             }
 
-            CuentaDto cuentaOrigen = cuentasRepository.getCuentaById(uid, transferencia.getCuentaOrigenId());
+            CuentaDto cuentaOrigen = cuentasRepository.getCuentaById(spaceId, transferencia.getCuentaOrigenId());
             CuentaDto cuentaDestinoDto;
             TarjetaDto tarjetaDestinoDto;
             String transferenciaid = "";
@@ -67,27 +73,27 @@ public class TransferenciasService {
                 response.setMessage("La cuenta origen no existe.");
                 return response;
             }
-            
+
             if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")){
-                cuentaDestinoDto = cuentasRepository.getCuentaById(uid, transferencia.getCuentaDestinoId());
+                cuentaDestinoDto = cuentasRepository.getCuentaById(spaceId, transferencia.getCuentaDestinoId());
                 if(cuentaDestinoDto == null){
                     response.setCoderr("1005");
                     response.setMessage("La cuenta destino no existe.");
                     return response;
                 }
 
-                transferenciaid = transferenciasRepository.newTransferenciaCuenta(uid, transferencia, cuentaOrigen, cuentaDestinoDto);
+                transferenciaid = transferenciasRepository.newTransferenciaCuenta(spaceId, transferencia, cuentaOrigen, cuentaDestinoDto);
 
 
             } else if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){
-                tarjetaDestinoDto = tarjetasRepository.getTarjetaById(uid, transferencia.getCuentaDestinoId());
+                tarjetaDestinoDto = tarjetasRepository.getTarjetaById(spaceId, transferencia.getCuentaDestinoId());
                 if(tarjetaDestinoDto == null){
                     response.setCoderr("1006");
                     response.setMessage("La tarjeta destino no existe.");
                     return response;
                 }
 
-                transferenciaid = transferenciasRepository.newTransferenciaTarjeta(uid, transferencia, cuentaOrigen, tarjetaDestinoDto);
+                transferenciaid = transferenciasRepository.newTransferenciaTarjeta(spaceId, transferencia, cuentaOrigen, tarjetaDestinoDto);
             }
 
             dto.setId(transferenciaid);
@@ -104,9 +110,10 @@ public class TransferenciasService {
         return response;
     }
 
-    public GenericResponse getTransferenciaById(String uid, String transferenciaId) {
+    public GenericResponse getTransferenciaById(String spaceId, String uid, String transferenciaId) {
         try {
-            TransferenciaDto transferencia = transferenciasRepository.getTransferenciaById(uid, transferenciaId);
+            spaceRepository.validateMembership(spaceId, uid);
+            TransferenciaDto transferencia = transferenciasRepository.getTransferenciaById(spaceId, transferenciaId);
             if (transferencia != null) {
                 response.setCoderr("0000");
                 response.setMessage("Transferencia obtenida exitosamente.");
@@ -121,9 +128,10 @@ public class TransferenciasService {
         return response;
     }
 
-    public GenericResponse eliminarTransferencia(String uid, String transferenciaId) {
+    public GenericResponse eliminarTransferencia(String spaceId, String uid, String transferenciaId) {
         try {
-            transferenciasRepository.deleteTransferencia(uid, transferenciaId);
+            spaceRepository.validateMembership(spaceId, uid);
+            transferenciasRepository.deleteTransferencia(spaceId, transferenciaId);
             response.setCoderr("0000");
             response.setMessage("Transferencia eliminada exitosamente.");
         } catch (Exception e) {
@@ -132,9 +140,10 @@ public class TransferenciasService {
         return response;
     }
 
-    public GenericResponse actualizarTransferencia(String uid, String transferenciaId, TransferenciaDto updatedData) {
+    public GenericResponse actualizarTransferencia(String spaceId, String uid, String transferenciaId, TransferenciaDto updatedData) {
         try {
-            TransferenciaDto transferenciaDto = transferenciasRepository.updateTransferencia(uid, transferenciaId, updatedData);
+            spaceRepository.validateMembership(spaceId, uid);
+            TransferenciaDto transferenciaDto = transferenciasRepository.updateTransferencia(spaceId, transferenciaId, updatedData);
             response.setCoderr("0000");
             response.setMessage("Transferencia actualizada exitosamente.");
             response.setData(transferenciaDto);

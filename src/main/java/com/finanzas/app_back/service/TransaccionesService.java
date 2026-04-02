@@ -16,6 +16,7 @@ import com.finanzas.app_back.model.Tarjeta;
 import com.finanzas.app_back.model.Transaccion;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
 import com.finanzas.app_back.repositories.CuentasRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 
 @Service
@@ -33,21 +34,26 @@ public class TransaccionesService {
     @Autowired
     private TarjetasRepository tarjetasRepository;
 
+    @Autowired
+    private SpaceRepository spaceRepository;
+
 
     private GenericResponse response = new GenericResponse();
 
-    public GenericResponse registrarTransaccion(String uid ,TransaccionDto dto) {
+    public GenericResponse registrarTransaccion(String spaceId, String uid, TransaccionDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Transaccion transaccion = new Transaccion();
             transaccion.setDataDto(dto);
 
             if(transaccion.getCuentaId() != null && !transaccion.getCuentaId().isEmpty()){
-                String transaccionId = transaccionesRepository.newTransaccionCuenta(uid, transaccion);
+                String transaccionId = transaccionesRepository.newTransaccionCuenta(spaceId, transaccion);
                 dto.setId(transaccionId);
             } else if(transaccion.getTarjetaId() != null && !transaccion.getTarjetaId().isEmpty()){
-                String transaccionId = transaccionesRepository.newTransaccionTarjeta(uid, transaccion);
+                String transaccionId = transaccionesRepository.newTransaccionTarjeta(spaceId, transaccion);
                 dto.setId(transaccionId);
             } else {
                 response.setCoderr("1003");
@@ -64,16 +70,43 @@ public class TransaccionesService {
         }
 
         return response;
-    } 
+    }
+
+    // Called internally by TransaccionRecurrenteRepository (no uid available)
+    public GenericResponse registrarTransaccion(String spaceId, TransaccionDto dto) {
+        try {
+            Transaccion transaccion = new Transaccion();
+            transaccion.setDataDto(dto);
+
+            if(transaccion.getCuentaId() != null && !transaccion.getCuentaId().isEmpty()){
+                String transaccionId = transaccionesRepository.newTransaccionCuenta(spaceId, transaccion);
+                dto.setId(transaccionId);
+            } else if(transaccion.getTarjetaId() != null && !transaccion.getTarjetaId().isEmpty()){
+                String transaccionId = transaccionesRepository.newTransaccionTarjeta(spaceId, transaccion);
+                dto.setId(transaccionId);
+            } else {
+                response.setCoderr("1003");
+                response.setMessage("Debe especificar una cuenta o tarjeta para la transaccion.");
+                return response;
+            }
+
+            response.setCoderr("0000");
+            response.setMessage("Transaccion registrada exitosamente.");
+            response.setData(dto);
+        } catch (Exception e) {
+            response = generalService.handleExcepcion(e, "Error al registrar la transaccion");
+        }
+        return response;
+    }
 
 
 
 
-    public GenericResponse obtenerTransacciones(String uid, TransaccionFiltroDto filtroDto) {
-    
+    public GenericResponse obtenerTransacciones(String spaceId, String uid, TransaccionFiltroDto filtroDto) {
+
         try {
 
-            
+            spaceRepository.validateMembership(spaceId, uid);
 
             if(filtroDto.getCuentaId() != null && !filtroDto.getCuentaId().isEmpty() && filtroDto.getTarjetaId() != null && !filtroDto.getTarjetaId().isEmpty()) {
                 response.setCoderr("1002");
@@ -92,7 +125,7 @@ public class TransaccionesService {
                 }
 
 
-                transacciones = transaccionesRepository.getTransaccionesCuentaByMonth(uid, filtroDto.getYearMonth(), filtroDto.getCuentaId());
+                transacciones = transaccionesRepository.getTransaccionesCuentaByMonth(spaceId, filtroDto.getYearMonth(), filtroDto.getCuentaId());
             } else if(filtroDto.getTarjetaId() != null && !filtroDto.getTarjetaId().isEmpty()) {
 
                 if(filtroDto.getFechaInicio() == null || filtroDto.getFechaInicio().isEmpty() || filtroDto.getFechaFin() == null || filtroDto.getFechaFin().isEmpty()) {
@@ -100,7 +133,7 @@ public class TransaccionesService {
                     response.setMessage("Los campos 'fechaInicio' y 'fechaFin' son obligatorios.");
                     return response;
                 }
-                transacciones = transaccionesRepository.getTransaccionesTarjetaByCut(uid, filtroDto.getFechaInicio(), filtroDto.getFechaFin(), filtroDto.getTarjetaId());
+                transacciones = transaccionesRepository.getTransaccionesTarjetaByCut(spaceId, filtroDto.getFechaInicio(), filtroDto.getFechaFin(), filtroDto.getTarjetaId());
             }else{
                 response.setCoderr("0001");
                 response.setMessage("No se informo cuenta o tarjeta para filtrar.");
@@ -113,7 +146,7 @@ public class TransaccionesService {
                 response.setData(null);
                 return response;
             }
-            
+
 
             TransaccionesList transaccionesList = new TransaccionesList();
             transaccionesList.setTransacciones(transacciones);
@@ -129,11 +162,13 @@ public class TransaccionesService {
     }
 
 
-    public GenericResponse consultaTransaccion(String uid, String transaccionId) {
+    public GenericResponse consultaTransaccion(String spaceId, String uid, String transaccionId) {
 
         try {
 
-            TransaccionDto transaccion = transaccionesRepository.getTransaccionById(uid, transaccionId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TransaccionDto transaccion = transaccionesRepository.getTransaccionById(spaceId, transaccionId);
 
             if(transaccion == null){
                 response.setCoderr("0001");
@@ -153,11 +188,13 @@ public class TransaccionesService {
     }
 
 
-    public GenericResponse eliminarTransaccion(String uid, String transaccionId) {
+    public GenericResponse eliminarTransaccion(String spaceId, String uid, String transaccionId) {
 
         try {
-            
-            TransaccionDto transaccion = transaccionesRepository.getTransaccionById(uid, transaccionId);
+
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TransaccionDto transaccion = transaccionesRepository.getTransaccionById(spaceId, transaccionId);
 
             if(transaccion == null){
                 response.setCoderr("0001");
@@ -165,7 +202,7 @@ public class TransaccionesService {
                 return response;
             }
 
-            transaccionesRepository.deleteTransaccion(uid, transaccionId);
+            transaccionesRepository.deleteTransaccion(spaceId, transaccionId);
 
             response.setCoderr("0000");
             response.setMessage("Transaccion eliminada exitosamente.");
@@ -178,30 +215,32 @@ public class TransaccionesService {
 
 
 
-    public GenericResponse actualizarTransaccion(String uid, String transaccionId, TransaccionDto updatedTransaccionDto) {
+    public GenericResponse actualizarTransaccion(String spaceId, String uid, String transaccionId, TransaccionDto updatedTransaccionDto) {
 
         try {
-            
-            TipoActualizacion tipoActualizacion = indetificaActualizacion(uid, transaccionId, updatedTransaccionDto);
+
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TipoActualizacion tipoActualizacion = indetificaActualizacion(spaceId, transaccionId, updatedTransaccionDto);
 
             String nuevoId = "";
             Transaccion transaccion = new Transaccion();
             transaccion.setDataDto(updatedTransaccionDto);
 
-            TransaccionDto transaccionOriginal = transaccionesRepository.getTransaccionById(uid, transaccionId);
+            TransaccionDto transaccionOriginal = transaccionesRepository.getTransaccionById(spaceId, transaccionId);
 
             System.out.println("Tipo de actualizacion identificado: " + tipoActualizacion);
 
             switch (tipoActualizacion) {
                 case DIFERENTE_CUENTA:
-                    transaccionesRepository.deleteTransaccion(uid, transaccionId);
-                    nuevoId = transaccionesRepository.newTransaccionCuenta(uid, transaccion);
+                    transaccionesRepository.deleteTransaccion(spaceId, transaccionId);
+                    nuevoId = transaccionesRepository.newTransaccionCuenta(spaceId, transaccion);
                     updatedTransaccionDto.setId(nuevoId);
                     break;
 
                 case DIFERENTE_TARJETA:
-                    transaccionesRepository.deleteTransaccion(uid, transaccionId);
-                    nuevoId = transaccionesRepository.newTransaccionTarjeta(uid, transaccion);
+                    transaccionesRepository.deleteTransaccion(spaceId, transaccionId);
+                    nuevoId = transaccionesRepository.newTransaccionTarjeta(spaceId, transaccion);
                     updatedTransaccionDto.setId(nuevoId);
                     break;
 
@@ -209,7 +248,7 @@ public class TransaccionesService {
 
                     if(transaccionOriginal.getCuentaId() != null && !transaccionOriginal.getCuentaId().isEmpty()){
 
-                        CuentaDto cuentaDto = cuentasRepository.getCuentaById(uid, transaccionOriginal.getCuentaId());
+                        CuentaDto cuentaDto = cuentasRepository.getCuentaById(spaceId, transaccionOriginal.getCuentaId());
 
                         if(transaccionOriginal.getImporte() > updatedTransaccionDto.getImporte()){
 
@@ -236,16 +275,16 @@ public class TransaccionesService {
                         Cuenta cuenta = new Cuenta();
                         cuenta.setDataDto(cuentaDto);
 
-                        cuentasRepository.updateCuenta(uid, transaccionOriginal.getCuentaId(), cuenta);
+                        cuentasRepository.updateCuenta(spaceId, transaccionOriginal.getCuentaId(), cuenta);
 
                         Transaccion transaccionToUpdate = new Transaccion();
                         transaccionToUpdate.setDataDto(updatedTransaccionDto);
 
-                        transaccionesRepository.updateTransaccion(uid,updatedTransaccionDto.getId() ,transaccionToUpdate);
+                        transaccionesRepository.updateTransaccion(spaceId, updatedTransaccionDto.getId(), transaccionToUpdate);
 
                     } else if(transaccionOriginal.getTarjetaId() != null && !transaccionOriginal.getTarjetaId().isEmpty()){
-                        
-                        TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(uid, transaccionOriginal.getTarjetaId());
+
+                        TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(spaceId, transaccionOriginal.getTarjetaId());
 
                         if(transaccionOriginal.getImporte() > updatedTransaccionDto.getImporte()){
 
@@ -253,7 +292,7 @@ public class TransaccionesService {
                                 tarjetaDto.setSaldo(tarjetaDto.getSaldo() + (transaccionOriginal.getImporte() - updatedTransaccionDto.getImporte()));
                             } else {
                                 tarjetaDto.setSaldo(tarjetaDto.getSaldo() - (transaccionOriginal.getImporte() - updatedTransaccionDto.getImporte()));
-                            }   
+                            }
 
                         } else if(transaccionOriginal.getImporte() < updatedTransaccionDto.getImporte()){
 
@@ -261,7 +300,7 @@ public class TransaccionesService {
                                 tarjetaDto.setSaldo(tarjetaDto.getSaldo() - (updatedTransaccionDto.getImporte() - transaccionOriginal.getImporte()));
                             } else {
                                 tarjetaDto.setSaldo(tarjetaDto.getSaldo() + (updatedTransaccionDto.getImporte() - transaccionOriginal.getImporte()));
-                            }   
+                            }
 
                         }else{
                             response.setCoderr("1004");
@@ -273,13 +312,13 @@ public class TransaccionesService {
                         tarjeta.setDataDto(tarjetaDto);
                         tarjeta.setSaldo(tarjetaDto.getSaldo());
 
-                        tarjetasRepository.updateTarjeta(uid, transaccionOriginal.getTarjetaId(), tarjeta);
+                        tarjetasRepository.updateTarjeta(spaceId, transaccionOriginal.getTarjetaId(), tarjeta);
 
                         Transaccion transaccionToUpdate = new Transaccion();
                         transaccionToUpdate.setDataDto(updatedTransaccionDto);
-                        
 
-                        transaccionesRepository.updateTransaccion(uid, updatedTransaccionDto.getId(), transaccionToUpdate);
+
+                        transaccionesRepository.updateTransaccion(spaceId, updatedTransaccionDto.getId(), transaccionToUpdate);
 
                     } else {
                         response.setCoderr("1003");
@@ -294,7 +333,7 @@ public class TransaccionesService {
                     Transaccion transaccionToUpdate = new Transaccion();
                     transaccionToUpdate.setDataDto(updatedTransaccionDto);
 
-                    transaccionesRepository.updateTransaccion(uid, updatedTransaccionDto.getId(), transaccionToUpdate);
+                    transaccionesRepository.updateTransaccion(spaceId, updatedTransaccionDto.getId(), transaccionToUpdate);
                     break;
 
                 case ERROR:
@@ -302,7 +341,7 @@ public class TransaccionesService {
                     response.setCoderr("1003");
                     response.setMessage("Error al identificar el tipo de actualización.");
                     break;
-            
+
                 default:
 
                     response.setCoderr("1004");
@@ -317,7 +356,7 @@ public class TransaccionesService {
             response.setMessage("Transaccion actualizada exitosamente.");
             response.setData(updatedTransaccionDto);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la transaccion");
         }
@@ -326,24 +365,24 @@ public class TransaccionesService {
     }
 
 
-    private TipoActualizacion indetificaActualizacion(String uid ,String TransaccionId ,TransaccionDto dto){
+    private TipoActualizacion indetificaActualizacion(String spaceId, String TransaccionId, TransaccionDto dto){
 
 
         try {
-            
-            TransaccionDto transaccionOriginal = transaccionesRepository.getTransaccionById(uid, TransaccionId);
+
+            TransaccionDto transaccionOriginal = transaccionesRepository.getTransaccionById(spaceId, TransaccionId);
 
             if(dto.getCuentaId() != null && !dto.getCuentaId().isEmpty()){
                 if(!transaccionOriginal.getCuentaId().equals(dto.getCuentaId())){
                     return TipoActualizacion.DIFERENTE_CUENTA;
-                } 
+                }
             } else if(dto.getTarjetaId() != null && !dto.getTarjetaId().isEmpty()){
                 if(!transaccionOriginal.getTarjetaId().equals(dto.getTarjetaId())){
                     return TipoActualizacion.DIFERENTE_TARJETA;
                 }
             }
 
-            
+
 
             if (!transaccionOriginal.getImporte().equals(dto.getImporte())) {
                 System.out.println("Se detecto un cambio en el importe de la transaccion" + transaccionOriginal.getImporte() + " a " + dto.getImporte());
@@ -357,7 +396,7 @@ public class TransaccionesService {
             return TipoActualizacion.ERROR;
         }
 
-        
+
     }
 
     private enum TipoActualizacion {
@@ -367,10 +406,6 @@ public class TransaccionesService {
         DEFAULT,
         ERROR
     }
-
-
-    
-    
 
 
 

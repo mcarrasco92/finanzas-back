@@ -25,193 +25,168 @@ public class TarjetasRepository {
 
     private static final String COLLECTION_NAME = "tarjetas";
 
-    public String newTarjeta(String uid, Tarjeta tarjeta) throws ExecutionException, InterruptedException {
+    public String newTarjeta(String spaceId, Tarjeta tarjeta) throws ExecutionException, InterruptedException {
 
         System.out.println("Tarjeta a registrar: " + tarjeta);
-        
-        CollectionReference tarjetas = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+
+        CollectionReference tarjetas = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         DocumentReference document = tarjetas.document();
 
         ApiFuture<WriteResult> writeResult = document.set(tarjeta);
         writeResult.get();
 
-        return document.getId(); // Retorna el ID del documento creado
+        return document.getId();
     }
 
-    public ArrayList<TarjetaDto> getTarjetas(String uid) throws ExecutionException, InterruptedException {
-        CollectionReference tarjetasRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+    public ArrayList<TarjetaDto> getTarjetas(String spaceId) throws ExecutionException, InterruptedException {
+        CollectionReference tarjetasRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         ApiFuture<QuerySnapshot> querySnapshot = tarjetasRef.get();
 
         ArrayList<TarjetaDto> tarjetasList = new ArrayList<>();
         for (QueryDocumentSnapshot document : querySnapshot.get().getDocuments()) {
             TarjetaDto tarjeta = document.toObject(TarjetaDto.class);
-            tarjeta.setId(document.getId()); // Asigna el ID del documento a la tarjeta
-
+            tarjeta.setId(document.getId());
             tarjetasList.add(tarjeta);
         }
 
         return tarjetasList;
     }
 
-    public TarjetaDto getTarjetaById(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+    public TarjetaDto getTarjetaById(String spaceId, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
         DocumentSnapshot document = future.get();
 
         if (document.exists()) {
             TarjetaDto tarjeta = document.toObject(TarjetaDto.class);
-            tarjeta.setId(document.getId()); // Asigna el ID del documento a la tarjeta
+            tarjeta.setId(document.getId());
             return tarjeta;
         } else {
-            return null; // O lanza una excepción si prefieres
+            return null;
         }
     }
 
-    public void updateTarjeta(String uid, String tarjetaId, Tarjeta tarjeta) throws ExecutionException, InterruptedException {
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+    public void updateTarjeta(String spaceId, String tarjetaId, Tarjeta tarjeta) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<WriteResult> writeResult = tarjetaRef.set(tarjeta);
-        writeResult.get(); // Espera a que la operación se complete
+        writeResult.get();
     }
 
-    public void deleteTarjeta(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+    public void deleteTarjeta(String spaceId, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<WriteResult> writeResult = tarjetaRef.delete();
-        writeResult.get(); // Espera a que la operación se complete
+        writeResult.get();
     }
 
 
-    public double pagoPendiente(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+    public double pagoPendiente(String spaceId, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
         DocumentSnapshot document = future.get();
-
 
         if (document.exists()) {
             Tarjeta tarjeta = document.toObject(Tarjeta.class);
 
-            double saldoPeriodoActual = saldoPeriodoActual(uid, tarjetaId);
-            double saldoMsiFuturos = saldoMsiFuturos(uid, tarjetaId);
+            double saldoPeriodoActual = saldoPeriodoActual(spaceId, tarjetaId);
+            double saldoMsiFuturos = saldoMsiFuturos(spaceId, tarjetaId);
 
             double SaldoTotal = tarjeta.getSaldo();;
 
             double pagoPendiente = SaldoTotal - saldoPeriodoActual - saldoMsiFuturos;
 
             return pagoPendiente;
-            
+
         } else {
-            return 0; // O lanza una excepción si prefieres
+            return 0;
         }
     }
 
 
-
-    public double saldoPeriodoActual(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+    public double saldoPeriodoActual(String spaceId, String tarjetaId) throws ExecutionException, InterruptedException {
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
         DocumentSnapshot document = future.get();
 
         if (document.exists()) {
             Tarjeta tarjeta = document.toObject(Tarjeta.class);
 
-            // Obtener el día de corte como un entero
             int diaCorte = Integer.parseInt(tarjeta.getDcorte());
 
-            // Obtener la fecha actual
             LocalDate fechaActual = LocalDate.now();
 
-            // Calcular la fecha de inicio
             LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte);
 
-            fechaInicio = fechaInicio.plusDays(1); // Mover al día siguiente para incluir el día de corte
+            fechaInicio = fechaInicio.plusDays(1);
 
             if (fechaActual.getDayOfMonth() < diaCorte) {
-                // Si el día actual es menor que el día de corte, retroceder un mes
                 fechaInicio = fechaInicio.minusMonths(1);
             }
 
-            // Calcular la fecha de fin (un mes después de la fecha de inicio)
-            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1); // Restar un día para incluir el último día del período
+            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1);
 
-            // Convertir las fechas al formato "YYYY-MM-DD"
-            String fechaInicioStr = fechaInicio.toString(); // Formato por defecto de LocalDate es "YYYY-MM-DD"
+            String fechaInicioStr = fechaInicio.toString();
             String fechaFinStr = fechaFin.toString();
 
-            // Consultar las transacciones en el rango de fechas
-            CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+            CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
             ApiFuture<QuerySnapshot> snapshot = transaccionesRef
                 .whereEqualTo("tarjetaId", tarjetaId)
-                .whereGreaterThanOrEqualTo("fecha", fechaInicioStr) // Fecha >= fechaInicio
-                .whereLessThan("fecha", fechaFinStr) // Fecha < fechaFin
+                .whereGreaterThanOrEqualTo("fecha", fechaInicioStr)
+                .whereLessThan("fecha", fechaFinStr)
                 .get();
 
-            // Calcular el total pendiente
             double saldoPeriodoActual = 0;
             for (QueryDocumentSnapshot transaccion : snapshot.get().getDocuments()) {
                 saldoPeriodoActual += transaccion.getDouble("importe");
             }
 
             return saldoPeriodoActual;
-            
+
         } else {
-            return 0; // O lanza una excepción si prefieres
+            return 0;
         }
     }
 
-    public double saldoMsiFuturos(String uid, String tarjetaId) throws ExecutionException, InterruptedException {
+    public double saldoMsiFuturos(String spaceId, String tarjetaId) throws ExecutionException, InterruptedException {
 
-        DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(tarjetaId);
+        DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(tarjetaId);
         ApiFuture<DocumentSnapshot> future = tarjetaRef.get();
         DocumentSnapshot document = future.get();
 
         if (document.exists()) {
             Tarjeta tarjeta = document.toObject(Tarjeta.class);
 
-            // Obtener el día de corte como un entero
-            int diaCorte = Integer.parseInt(tarjeta.getDcorte()); //27
+            int diaCorte = Integer.parseInt(tarjeta.getDcorte());
 
-            // Obtener la fecha actual
-            LocalDate fechaActual = LocalDate.now(); //2025-10-15
+            LocalDate fechaActual = LocalDate.now();
 
-            // Calcular la fecha de inicio
-            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte); //2025-10-27
+            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte);
 
-            fechaInicio = fechaInicio.plusDays(1); // Mover al día siguiente para incluir el día de corte //2025-10-28
+            fechaInicio = fechaInicio.plusDays(1);
 
             if (fechaActual.getDayOfMonth() < diaCorte) {
-                // Si el día actual es menor que el día de corte, retroceder un mes
-                fechaInicio = fechaInicio.minusMonths(1); //2025-09-28
+                fechaInicio = fechaInicio.minusMonths(1);
             }
 
-            // Calcular la fecha de fin (un mes después de la fecha de inicio)
-            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1); // Restar un día para incluir el último día del período //2025-10-27
+            LocalDate fechaFin = fechaInicio.plusMonths(1).minusDays(1);
 
-            // Convertir las fechas al formato "YYYY-MM-DD"
-            String fechaInicioStr = fechaInicio.toString(); // Formato por defecto de LocalDate es "YYYY-MM-DD" //2025-09-28
-            String fechaFinStr = fechaFin.toString(); //2025-10-27
+            String fechaFinStr = fechaFin.toString();
 
-            // Consultar las transacciones en el rango de fechas
-            CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+            CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
             ApiFuture<QuerySnapshot> snapshot = transaccionesRef
                 .whereEqualTo("tarjetaId", tarjetaId)
-                .whereGreaterThanOrEqualTo("fecha", fechaFinStr) // Fecha >= fechaInicio
-                .get(); // Solo necesitamos las futuras, no el rango completo
+                .whereGreaterThanOrEqualTo("fecha", fechaFinStr)
+                .get();
 
-            // Calcular el total pendiente
             double saldoMsiFuturos = 0;
             for (QueryDocumentSnapshot transaccion : snapshot.get().getDocuments()) {
                 saldoMsiFuturos += transaccion.getDouble("importe");
             }
 
-            return saldoMsiFuturos;    
+            return saldoMsiFuturos;
         } else {
-            return 0; // O lanza una excepción si prefieres
+            return 0;
         }
     }
 
 
-    
-
 }
-
-
-

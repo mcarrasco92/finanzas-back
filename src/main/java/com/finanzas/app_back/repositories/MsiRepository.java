@@ -28,16 +28,16 @@ public class MsiRepository {
     @Autowired
     private TransaccionesRepository transaccionesRepository;
 
-    public String newMsi(String uid, Msi msi) throws Exception {
+    public String newMsi(String spaceId, Msi msi) throws Exception {
 
-        CollectionReference msis = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference msis = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         DocumentReference document = msis.document();
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
-            LocalDate fechaInicial = LocalDate.parse(msi.getFecha()); // Asegúrate de que msi.getFecha() esté en formato "yyyy-MM-dd"
+            LocalDate fechaInicial = LocalDate.parse(msi.getFecha());
 
-            for(int i = 0; i < msi.getMeses(); i++) {
+            for (int i = 0; i < msi.getMeses(); i++) {
                 Transaccion trans = new Transaccion();
                 trans.setTarjetaId(msi.getTarjetaId());
                 trans.setCatEgresoId(msi.getCatEgresoId());
@@ -47,30 +47,26 @@ public class MsiRepository {
                 trans.setTipo("Egreso");
                 trans.setMsiId(document.getId());
 
-                // Incrementar la fecha un mes por cada iteración
                 LocalDate fechaTransaccion = fechaInicial.plusMonths(i);
-                trans.setFecha(fechaTransaccion.toString()); // Convertir de nuevo a String en formato "yyyy-MM-dd"
+                trans.setFecha(fechaTransaccion.toString());
 
                 System.out.println("Transacción a registrar: " + trans);
 
-                
-
-                transaccionesRepository.newTransaccionTarjeta(uid, trans);    
+                transaccionesRepository.newTransaccionTarjeta(spaceId, trans);
             }
 
-            
             transaction.set(document, msi);
             return document.getId();
         });
 
         return future.get();
-        
+
     }
 
-    public ArrayList<MsiDto> getMsisByTarjetaId(String uid, String tarjetaId) throws Exception {
+    public ArrayList<MsiDto> getMsisByTarjetaId(String spaceId, String tarjetaId) throws Exception {
         ArrayList<MsiDto> msisList = new ArrayList<>();
 
-        CollectionReference msisRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference msisRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         ApiFuture<QuerySnapshot> query = msisRef.whereEqualTo("tarjetaId", tarjetaId).get();
         java.util.List<QueryDocumentSnapshot> documents = query.get().getDocuments();
 
@@ -83,10 +79,10 @@ public class MsiRepository {
         return msisList;
     }
 
-    public ArrayList<MsiDto> getMsis(String uid) throws Exception {
+    public ArrayList<MsiDto> getMsis(String spaceId) throws Exception {
         ArrayList<MsiDto> msisList = new ArrayList<>();
 
-        CollectionReference msisRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference msisRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         ApiFuture<QuerySnapshot> query = msisRef.get();
         java.util.List<QueryDocumentSnapshot> documents = query.get().getDocuments();
 
@@ -104,9 +100,9 @@ public class MsiRepository {
     }
 
 
-    public void deleteMsi(String uid, String msiId) throws Exception {
-        DocumentReference msiRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(msiId);
-        CollectionReference transRef = firestore.collection("users").document(uid).collection("transacciones");
+    public void deleteMsi(String spaceId, String msiId) throws Exception {
+        DocumentReference msiRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(msiId);
+        CollectionReference transRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
             ApiFuture<DocumentSnapshot> msiSnapshotFuture = msiRef.get();
@@ -118,8 +114,7 @@ public class MsiRepository {
                 throw new Exception("El MSI con ID " + msiId + " no existe.");
             }
 
-            DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas").document(msiSnapshot.getString("tarjetaId"));
-            // Actualizar el saldo de la tarjeta asociada al MSI
+            DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection("tarjetas").document(msiSnapshot.getString("tarjetaId"));
             ApiFuture<DocumentSnapshot> tarjetaSnapshotFuture = tarjetaRef.get();
             DocumentSnapshot tarjetaSnapshot = tarjetaSnapshotFuture.get();
 
@@ -128,12 +123,11 @@ public class MsiRepository {
                 Double importeMsi = msiSnapshot.getDouble("importe");
                 if (saldoActual != null && importeMsi != null) {
                     nuevoSaldoTarjeta = saldoActual - importeMsi;
-                }else {
+                } else {
                     throw new Exception("No se pudo actualizar el saldo de la tarjeta asociada al MSI - 001.");
                 }
             }
 
-            // Eliminar las transacciones asociadas al MSI
             ApiFuture<QuerySnapshot> query = transRef.whereEqualTo("msiId", msiId).get();
             java.util.List<QueryDocumentSnapshot> documents = query.get().getDocuments();
             for (QueryDocumentSnapshot document : documents) {
@@ -141,26 +135,24 @@ public class MsiRepository {
                 transaction.delete(transDocRef);
             }
 
-            // Eliminar el MSI
             transaction.update(tarjetaRef, "saldo", nuevoSaldoTarjeta);
             transaction.delete(msiRef);
 
             return null;
-
         });
     }
 
 
-    public String actualizarMsi(String uid, String msiId, Msi msi) throws Exception {
+    public String actualizarMsi(String spaceId, String msiId, Msi msi) throws Exception {
 
-        DocumentReference msiRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(msiId);
-        CollectionReference transRef = firestore.collection("users").document(uid).collection("transacciones");
+        DocumentReference msiRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(msiId);
+        CollectionReference transRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
 
         ApiFuture<String> future = firestore.runTransaction(transaction -> {
 
             ApiFuture<DocumentSnapshot> msiSnapshotFuture = msiRef.get();
             DocumentSnapshot msiSnapshot = msiSnapshotFuture.get();
-            DocumentReference tarjetaRef = firestore.collection("users").document(uid).collection("tarjetas").document(msiSnapshot.getString("tarjetaId"));
+            DocumentReference tarjetaRef = firestore.collection("spaces").document(spaceId).collection("tarjetas").document(msiSnapshot.getString("tarjetaId"));
 
             Double nuevoSaldoTarjeta = 0.0;
             Boolean saldoActualizado = false;
@@ -172,8 +164,7 @@ public class MsiRepository {
             Double importeMsiOld = msiSnapshot.getDouble("importe");
             Double importeMsiNew = msi.getImporte();
 
-            if(!importeMsiOld.equals(importeMsiNew)){
-                // Actualizar el saldo de la tarjeta asociada al MSI
+            if (!importeMsiOld.equals(importeMsiNew)) {
                 ApiFuture<DocumentSnapshot> tarjetaSnapshotFuture = tarjetaRef.get();
                 DocumentSnapshot tarjetaSnapshot = tarjetaSnapshotFuture.get();
 
@@ -182,15 +173,12 @@ public class MsiRepository {
                     if (saldoActual != null && importeMsiOld != null && importeMsiNew != null) {
                         nuevoSaldoTarjeta = saldoActual - importeMsiOld + importeMsiNew;
                         saldoActualizado = true;
-                    }else {
+                    } else {
                         throw new Exception("No se pudo actualizar el saldo de la tarjeta asociada al MSI - 002.");
                     }
                 }
-
             }
 
-
-            // Eliminar las transacciones asociadas al MSI
             ApiFuture<QuerySnapshot> query = transRef.whereEqualTo("msiId", msiId).get();
             java.util.List<QueryDocumentSnapshot> documents = query.get().getDocuments();
             for (QueryDocumentSnapshot document : documents) {
@@ -198,9 +186,8 @@ public class MsiRepository {
                 transaction.delete(transDocRef);
             }
 
-            // Crear nuevas transacciones asociadas al MSI actualizado
-            LocalDate fechaInicial = LocalDate.parse(msi.getFecha()); // Asegúrate de que msi.getFecha() esté en formato "yyyy-MM-dd"
-            for(int i = 0; i < msi.getMeses(); i++) {
+            LocalDate fechaInicial = LocalDate.parse(msi.getFecha());
+            for (int i = 0; i < msi.getMeses(); i++) {
                 Transaccion trans = new Transaccion();
                 trans.setTarjetaId(msi.getTarjetaId());
                 trans.setCatEgresoId(msi.getCatEgresoId());
@@ -210,17 +197,15 @@ public class MsiRepository {
                 trans.setTipo("Egreso");
                 trans.setMsiId(msiId);
 
-                // Incrementar la fecha un mes por cada iteración
                 LocalDate fechaTransaccion = fechaInicial.plusMonths(i);
-                trans.setFecha(fechaTransaccion.toString()); // Convertir de nuevo a String en formato "yyyy-MM-dd"
+                trans.setFecha(fechaTransaccion.toString());
                 transaction.set(transRef.document(), trans);
             }
-            
-            // Actualizar
-            if(saldoActualizado){
+
+            if (saldoActualizado) {
                 transaction.update(tarjetaRef, "saldo", nuevoSaldoTarjeta);
             }
-            
+
             transaction.set(msiRef, msi);
             return msiId;
         });

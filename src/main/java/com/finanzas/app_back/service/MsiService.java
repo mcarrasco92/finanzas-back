@@ -7,6 +7,7 @@ import com.finanzas.app_back.dto.GenericResponse;
 import com.finanzas.app_back.dto.Msi.MsiDto;
 import com.finanzas.app_back.model.Msi;
 import com.finanzas.app_back.repositories.MsiRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 
 @Service
 public class MsiService {
@@ -17,18 +18,23 @@ public class MsiService {
     @Autowired
     private MsiRepository msiRepository;
 
+    @Autowired
+    private SpaceRepository spaceRepository;
+
     private GenericResponse response = new GenericResponse();
 
-    public GenericResponse registrarMsi(String uid ,MsiDto dto) {
+    public GenericResponse registrarMsi(String spaceId, String uid, MsiDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Msi msi = new Msi();
             msi.setData(dto);
 
             System.out.println("MSI a registrar: " + msi);
 
-            String msiId = msiRepository.newMsi(uid, msi);
+            String msiId = msiRepository.newMsi(spaceId, msi);
             dto.setId(msiId);
 
             response.setCoderr("0000");
@@ -43,13 +49,15 @@ public class MsiService {
     }
 
 
-    public GenericResponse obtenerMsisByTarjetaId(String uid, String tarjetaId) {
-    
+    public GenericResponse obtenerMsisByTarjetaId(String spaceId, String uid, String tarjetaId) {
+
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             response.setCoderr("0000");
             response.setMessage("MSI obtenidos exitosamente.");
-            response.setData(msiRepository.getMsisByTarjetaId(uid, tarjetaId));
+            response.setData(msiRepository.getMsisByTarjetaId(spaceId, tarjetaId));
 
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al obtener los MSI");
@@ -58,15 +66,17 @@ public class MsiService {
         return response;
     }
 
-    public GenericResponse obtenerMsis(String uid) {
-    
+    public GenericResponse obtenerMsis(String spaceId, String uid) {
+
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             response.setCoderr("0000");
             response.setMessage("MSI obtenidos exitosamente.");
 
-            System.out.println("UID en el servicio obtenerMsis: " + uid);
-            response.setData(msiRepository.getMsis(uid));
+            System.out.println("SpaceId en el servicio obtenerMsis: " + spaceId);
+            response.setData(msiRepository.getMsis(spaceId));
 
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al obtener los MSI");
@@ -75,11 +85,13 @@ public class MsiService {
         return response;
     }
 
-    public GenericResponse eliminarMsi(String uid, String msiId) {
-    
+    public GenericResponse eliminarMsi(String spaceId, String uid, String msiId) {
+
         try {
 
-            msiRepository.deleteMsi(uid, msiId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            msiRepository.deleteMsi(spaceId, msiId);
 
             response.setCoderr("0000");
             response.setMessage("MSI eliminado exitosamente.");
@@ -91,14 +103,16 @@ public class MsiService {
         return response;
     }
 
-    public GenericResponse actualizaMsi(String uid, String msiId, MsiDto msiToUpdate) {
+    public GenericResponse actualizaMsi(String spaceId, String uid, String msiId, MsiDto msiToUpdate) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Msi msi = new Msi();
             msi.setData(msiToUpdate);
 
-            msiRepository.actualizarMsi(uid, msiId, msi);
+            msiRepository.actualizarMsi(spaceId, msiId, msi);
 
             response.setCoderr("0000");
             response.setMessage("MSI actualizado exitosamente.");

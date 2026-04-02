@@ -10,6 +10,7 @@ import com.finanzas.app_back.dto.Cuentas.CuentasList;
 import com.finanzas.app_back.model.Cuenta;
 
 import com.finanzas.app_back.repositories.CuentasRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
 
 
@@ -25,19 +26,23 @@ public class CuentasService {
     private CuentasRepository cuentasRepository;
     @Autowired
     private TransaccionesRepository transaccionesRepository;
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     private GenericResponse response = new GenericResponse();
 
 
-    public GenericResponse registrarCuenta(String uid ,CuentaDto dto) {
+    public GenericResponse registrarCuenta(String spaceId, String uid, CuentaDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Cuenta cuenta = new Cuenta();
             cuenta.setDataDto(dto);
             cuenta.setActiva(true);
 
-            String cuentaId = cuentasRepository.newCuenta(uid, cuenta);
+            String cuentaId = cuentasRepository.newCuenta(spaceId, cuenta);
             dto.setId(cuentaId);
 
             response.setCoderr("0000");
@@ -52,43 +57,45 @@ public class CuentasService {
     }
 
 
-    public GenericResponse obtenerCuentas(String uid) {
-        
+    public GenericResponse obtenerCuentas(String spaceId, String uid) {
+
         final Double[] saldoInvertido = {0.0};
         final Double[] saldoDisponible = {0.0};
         final Double[] saldoTotal = {0.0};
-    
+
         try {
 
-            ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(uid);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(spaceId);
 
             if (cuentas.isEmpty()) {
                 response.setCoderr("0001");
                 response.setMessage("No se encontraron cuentas.");
                 return response;
             }
-            
+
             for (CuentaDto cuenta : cuentas) {
 
                 if(cuenta.isActiva()){
                     if(cuenta.isInversion()){
                         saldoInvertido[0] += cuenta.getSaldo();
                     }
-        
+
                     if(cuenta.isVista()){
                         saldoDisponible[0] += cuenta.getSaldo();
-                    } 
-    
+                    }
+
                     saldoTotal[0] += cuenta.getSaldo();
                 }
-                
+
             }
 
             CuentasList cuentasList = new CuentasList();
             cuentasList.setCuentas(cuentas);
             cuentasList.setSaldoDisponible(saldoDisponible[0]);
             cuentasList.setSaldoInvertido(saldoInvertido[0]);
-            cuentasList.setSaldoTotal(saldoTotal[0]);  
+            cuentasList.setSaldoTotal(saldoTotal[0]);
 
 
             response.setCoderr("0000");
@@ -102,11 +109,13 @@ public class CuentasService {
     }
 
 
-    public GenericResponse consultaCuenta(String uid, String cuentaId) {
+    public GenericResponse consultaCuenta(String spaceId, String uid, String cuentaId) {
 
         try {
 
-            CuentaDto cuenta = cuentasRepository.getCuentaById(uid, cuentaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CuentaDto cuenta = cuentasRepository.getCuentaById(spaceId, cuentaId);
 
             if(cuenta == null){
                 response.setCoderr("0001");
@@ -114,7 +123,7 @@ public class CuentasService {
                 return response;
             }
 
-            cuenta.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId));
+            cuenta.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(spaceId, cuentaId));
 
             response.setCoderr("0000");
             response.setMessage("Cuenta obtenida exitosamente.");
@@ -128,17 +137,19 @@ public class CuentasService {
     }
 
 
-    public GenericResponse actualizarCuenta(String uid, String cuentaId, CuentaDto updatedCuentaDto) {
+    public GenericResponse actualizarCuenta(String spaceId, String uid, String cuentaId, CuentaDto updatedCuentaDto) {
 
         try {
 
-            CuentaDto existingCuentaDto = cuentasRepository.getCuentaById(uid, cuentaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CuentaDto existingCuentaDto = cuentasRepository.getCuentaById(spaceId, cuentaId);
 
             if(existingCuentaDto == null){
                 response.setCoderr("0001");
                 response.setMessage("Cuenta no encontrada.");
                 return response;
-            } 
+            }
 
             existingCuentaDto.setNombre(updatedCuentaDto.getNombre());
             existingCuentaDto.setDescripcion(updatedCuentaDto.getDescripcion());
@@ -150,15 +161,15 @@ public class CuentasService {
             Cuenta cuenta = new Cuenta();
             cuenta.setDataDto(existingCuentaDto);
 
-            cuentasRepository.updateCuenta(uid, cuentaId, cuenta);
+            cuentasRepository.updateCuenta(spaceId, cuentaId, cuenta);
 
-            existingCuentaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId));
+            existingCuentaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByCuenta(spaceId, cuentaId));
 
             response.setCoderr("0000");
             response.setMessage("Cuenta actualizada exitosamente.");
             response.setData(existingCuentaDto);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la cuenta");
         }
@@ -167,11 +178,13 @@ public class CuentasService {
     }
 
 
-    public GenericResponse eliminarCuenta(String uid, String cuentaId) {
+    public GenericResponse eliminarCuenta(String spaceId, String uid, String cuentaId) {
 
         try {
-            
-            CuentaDto cuenta = cuentasRepository.getCuentaById(uid, cuentaId);
+
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CuentaDto cuenta = cuentasRepository.getCuentaById(spaceId, cuentaId);
 
             if(cuenta == null){
                 response.setCoderr("0001");
@@ -179,13 +192,13 @@ public class CuentasService {
                 return response;
             }
 
-            if(transaccionesRepository.getExistTransaccionesByCuenta(uid, cuentaId)){
+            if(transaccionesRepository.getExistTransaccionesByCuenta(spaceId, cuentaId)){
                 response.setCoderr("1003");
                 response.setMessage("No se puede eliminar la cuenta porque tiene transacciones asociadas.");
                 return response;
-            }   
+            }
 
-            cuentasRepository.deleteCuenta(uid, cuentaId);
+            cuentasRepository.deleteCuenta(spaceId, cuentaId);
 
             response.setCoderr("0000");
             response.setMessage("Cuenta eliminada exitosamente.");
@@ -196,21 +209,23 @@ public class CuentasService {
 
         return response;
     }
-    
 
-    public GenericResponse ordenCuentas(String uid, ArrayList<CuentaDto> cuentas){
+
+    public GenericResponse ordenCuentas(String spaceId, String uid, ArrayList<CuentaDto> cuentas){
 
         int orden = 1;
         String cuentaId = "";
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
+
         for (CuentaDto cuentaFor : cuentas) {
 
             cuentaId = cuentaFor.getId();
-            
-            if (cuentaId != null) { 
-                CuentaDto cuentaDto = cuentasRepository.getCuentaById(uid, cuentaId);
+
+            if (cuentaId != null) {
+                CuentaDto cuentaDto = cuentasRepository.getCuentaById(spaceId, cuentaId);
 
                 if(cuentaDto != null){
                     cuentaDto.setOrden(orden);
@@ -218,9 +233,9 @@ public class CuentasService {
 
                     Cuenta cuentaToUpdate = new Cuenta();
                     cuentaToUpdate.setDataDto(cuentaDto);
-                    cuentasRepository.updateCuenta(uid, cuentaId, cuentaToUpdate);
+                    cuentasRepository.updateCuenta(spaceId, cuentaId, cuentaToUpdate);
                 }
-                
+
             }
         }
 
@@ -234,12 +249,13 @@ public class CuentasService {
     }
 
 
-    public GenericResponse activarCuenta(String uid, String cuentaId, boolean activa) {
+    public GenericResponse activarCuenta(String spaceId, String uid, String cuentaId, boolean activa) {
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
 
-            CuentaDto cuentaDto = cuentasRepository.getCuentaById(uid, cuentaId);
+            CuentaDto cuentaDto = cuentasRepository.getCuentaById(spaceId, cuentaId);
 
             if(cuentaDto == null){
                 response.setCoderr("0001");
@@ -252,13 +268,13 @@ public class CuentasService {
 
             Cuenta cuentaToUpdate = new Cuenta();
             cuentaToUpdate.setDataDto(cuentaDto);
-            cuentasRepository.updateCuenta(uid, cuentaId, cuentaToUpdate);
+            cuentasRepository.updateCuenta(spaceId, cuentaId, cuentaToUpdate);
 
             response.setCoderr("0000");
             response.setMessage("Cuenta actualizada exitosamente.");
             response.setData(activa);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la cuenta");
         }

@@ -27,15 +27,15 @@ public class TransaccionRecurrenteRepository {
     @Autowired
     private com.finanzas.app_back.service.TransaccionesService transaccionesService;
 
-    public String newTransaccionRecurrente(String uid, TransaccionRecurrente transaccion) throws Exception {
+    public String newTransaccionRecurrente(String spaceId, TransaccionRecurrente transaccion) throws Exception {
 
-        CollectionReference colRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference colRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         DocumentReference document = colRef.document();
 
         LocalDate hoy = LocalDate.now();
         Boolean ejecutarHoy = false;
 
-        if(transaccion.getPeriodicidad().equals("Semanal")) {
+        if (transaccion.getPeriodicidad().equals("Semanal")) {
             DayOfWeek objetivo = switch (transaccion.getDia().toLowerCase()) {
                 case "lunes" -> DayOfWeek.MONDAY;
                 case "martes" -> DayOfWeek.TUESDAY;
@@ -47,43 +47,40 @@ public class TransaccionRecurrenteRepository {
                 default -> null;
             };
             int diasHastaObjetivo = objetivo.getValue() - hoy.getDayOfWeek().getValue();
-            if (diasHastaObjetivo == 0){
+            if (diasHastaObjetivo == 0) {
                 ejecutarHoy = true;
             }
-
-        }else{
-            if(hoy.equals(LocalDate.parse(transaccion.getFecha()))){
+        } else {
+            if (hoy.equals(LocalDate.parse(transaccion.getFecha()))) {
                 ejecutarHoy = true;
             }
         }
 
-        if(ejecutarHoy){
+        if (ejecutarHoy) {
             System.out.println("Es hoy la fecha de ejecución para la transacción recurrente: " + transaccion);
-                // Crear el movimiento usando TransaccionesService
-                TransaccionDto movimiento = new TransaccionDto();
-                movimiento.setFecha(hoy.toString());
-                movimiento.setImporte(transaccion.getImporte());
-                movimiento.setCatEgresoId(transaccion.getCatEgresoId());
-                movimiento.setCatIngresoId(transaccion.getCatIngresoId());
-                movimiento.setTarjetaId(transaccion.getTarjetaId());
-                movimiento.setCuentaId(transaccion.getCuentaId());
-                movimiento.setConcepto(transaccion.getConcepto());
-                movimiento.setDescripcion(transaccion.getDescripcion());
-                movimiento.setTipo(transaccion.getTipo());
-                transaccionesService.registrarTransaccion(uid, movimiento);
+            TransaccionDto movimiento = new TransaccionDto();
+            movimiento.setFecha(hoy.toString());
+            movimiento.setImporte(transaccion.getImporte());
+            movimiento.setCatEgresoId(transaccion.getCatEgresoId());
+            movimiento.setCatIngresoId(transaccion.getCatIngresoId());
+            movimiento.setTarjetaId(transaccion.getTarjetaId());
+            movimiento.setCuentaId(transaccion.getCuentaId());
+            movimiento.setConcepto(transaccion.getConcepto());
+            movimiento.setDescripcion(transaccion.getDescripcion());
+            movimiento.setTipo(transaccion.getTipo());
+            transaccionesService.registrarTransaccion(spaceId, movimiento);
         }
 
         transaccion.setSiguienteEjecucion(calcularSiguienteEjecucion(transaccion));
 
-        
         ApiFuture<WriteResult> future = document.set(transaccion);
         future.get();
         return document.getId();
     }
 
-    public ArrayList<TransaccionRecurrenteDto> getTransaccionesRecurrentes(String uid) throws Exception {
+    public ArrayList<TransaccionRecurrenteDto> getTransaccionesRecurrentes(String spaceId) throws Exception {
         ArrayList<TransaccionRecurrenteDto> list = new ArrayList<>();
-        CollectionReference colRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        CollectionReference colRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         ApiFuture<QuerySnapshot> query = colRef.get();
         java.util.List<QueryDocumentSnapshot> documents = query.get().getDocuments();
         for (QueryDocumentSnapshot document : documents) {
@@ -94,8 +91,8 @@ public class TransaccionRecurrenteRepository {
         return list;
     }
 
-    public TransaccionRecurrenteDto getTransaccionRecurrenteById(String uid, String id) throws Exception {
-        DocumentReference docRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(id);
+    public TransaccionRecurrenteDto getTransaccionRecurrenteById(String spaceId, String id) throws Exception {
+        DocumentReference docRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(id);
         DocumentSnapshot snapshot = docRef.get().get();
         if (!snapshot.exists()) return null;
         TransaccionRecurrenteDto dto = snapshot.toObject(TransaccionRecurrenteDto.class);
@@ -103,19 +100,19 @@ public class TransaccionRecurrenteRepository {
         return dto;
     }
 
-    public void deleteTransaccionRecurrente(String uid, String id) throws Exception {
-        DocumentReference docRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(id);
+    public void deleteTransaccionRecurrente(String spaceId, String id) throws Exception {
+        DocumentReference docRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(id);
         docRef.delete().get();
     }
 
-    public String actualizarTransaccionRecurrente(String uid, String id, TransaccionRecurrente transaccion) throws Exception {
-        DocumentReference docRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(id);
+    public String actualizarTransaccionRecurrente(String spaceId, String id, TransaccionRecurrente transaccion) throws Exception {
+        DocumentReference docRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(id);
 
         LocalDate hoy = LocalDate.now();
         Boolean ejecutarHoy = false;
         System.out.println("Evaluando actualización de transacción recurrente: " + transaccion);
 
-        if(transaccion.getPeriodicidad().equals("Semanal")) {
+        if (transaccion.getPeriodicidad().equals("Semanal")) {
             DayOfWeek objetivo = switch (transaccion.getDia().toLowerCase()) {
                 case "lunes" -> DayOfWeek.MONDAY;
                 case "martes" -> DayOfWeek.TUESDAY;
@@ -131,30 +128,28 @@ public class TransaccionRecurrenteRepository {
             System.out.println("diasHastaObjetivo: " + diasHastaObjetivo);
             System.out.println("hoy.getDayOfWeek().getValue(): " + hoy.getDayOfWeek().getValue());
             System.out.println("objetivo.getValue(): " + objetivo.getValue());
-            if (diasHastaObjetivo == 0){
+            if (diasHastaObjetivo == 0) {
                 ejecutarHoy = true;
             }
-
-        }else{
-            if(hoy.equals(LocalDate.parse(transaccion.getFecha()))){
+        } else {
+            if (hoy.equals(LocalDate.parse(transaccion.getFecha()))) {
                 ejecutarHoy = true;
             }
         }
 
-        if(ejecutarHoy){
+        if (ejecutarHoy) {
             System.out.println("Es hoy la fecha de ejecución para la transacción recurrente: " + transaccion);
-                // Crear el movimiento usando TransaccionesService
-                TransaccionDto movimiento = new TransaccionDto();
-                movimiento.setFecha(hoy.toString());
-                movimiento.setImporte(transaccion.getImporte());
-                movimiento.setCatEgresoId(transaccion.getCatEgresoId());
-                movimiento.setCatIngresoId(transaccion.getCatIngresoId());
-                movimiento.setTarjetaId(transaccion.getTarjetaId());
-                movimiento.setCuentaId(transaccion.getCuentaId());
-                movimiento.setConcepto(transaccion.getConcepto());
-                movimiento.setDescripcion(transaccion.getDescripcion());
-                movimiento.setTipo(transaccion.getTipo());
-                transaccionesService.registrarTransaccion(uid, movimiento);
+            TransaccionDto movimiento = new TransaccionDto();
+            movimiento.setFecha(hoy.toString());
+            movimiento.setImporte(transaccion.getImporte());
+            movimiento.setCatEgresoId(transaccion.getCatEgresoId());
+            movimiento.setCatIngresoId(transaccion.getCatIngresoId());
+            movimiento.setTarjetaId(transaccion.getTarjetaId());
+            movimiento.setCuentaId(transaccion.getCuentaId());
+            movimiento.setConcepto(transaccion.getConcepto());
+            movimiento.setDescripcion(transaccion.getDescripcion());
+            movimiento.setTipo(transaccion.getTipo());
+            transaccionesService.registrarTransaccion(spaceId, movimiento);
         }
 
         transaccion.setSiguienteEjecucion(calcularSiguienteEjecucion(transaccion));
@@ -164,25 +159,20 @@ public class TransaccionRecurrenteRepository {
     }
 
     public void generaTransaccionesRecurrentes(TransaccionesService transaccionesService) throws Exception {
-        // Obtener todos los usuarios
         System.out.println("Iniciando generación de transacciones recurrentes...");
-        CollectionReference usersRef = firestore.collection("users");
-        ApiFuture<QuerySnapshot> usersQuery = usersRef.get();
-        java.util.List<QueryDocumentSnapshot> documents = usersQuery.get().getDocuments();
+        CollectionReference spacesRef = firestore.collection("spaces");
+        ApiFuture<QuerySnapshot> spacesQuery = spacesRef.get();
+        java.util.List<QueryDocumentSnapshot> spaceDocuments = spacesQuery.get().getDocuments();
 
+        System.out.println("Spaces encontrados: " + spaceDocuments.size());
 
-        System.out.println("Usuarios encontrados: " + documents.size());
-
-
-        for (QueryDocumentSnapshot userDoc : usersQuery.get().getDocuments()) {
-            String uid = userDoc.getId();
-            // Obtener todas las transacciones recurrentes del usuario
-            CollectionReference colRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+        for (QueryDocumentSnapshot spaceDoc : spaceDocuments) {
+            String spaceId = spaceDoc.getId();
+            CollectionReference colRef = spacesRef.document(spaceId).collection(COLLECTION_NAME);
             ApiFuture<QuerySnapshot> transRecQuery = colRef.get();
-            System.out.println("Procesando transacciones recurrentes para el usuario: " + uid);
+            System.out.println("Procesando transacciones recurrentes para el space: " + spaceId);
             for (QueryDocumentSnapshot transRecDoc : transRecQuery.get().getDocuments()) {
                 TransaccionRecurrente dto = transRecDoc.toObject(TransaccionRecurrente.class);
-                // Verificar si la siguiente ejecución es hoy
                 LocalDate hoy = LocalDate.now();
 
                 System.out.println("Evaluando transacción recurrente: " + dto);
@@ -193,7 +183,6 @@ public class TransaccionRecurrenteRepository {
                     if (siguienteEjecucion.isEqual(hoy)) {
 
                         System.out.println("Es hoy la fecha de ejecución para la transacción recurrente: " + dto);
-                        // Crear el movimiento usando TransaccionesService
                         TransaccionDto movimiento = new TransaccionDto();
                         movimiento.setFecha(hoy.toString());
                         movimiento.setImporte(dto.getImporte());
@@ -204,12 +193,10 @@ public class TransaccionRecurrenteRepository {
                         movimiento.setConcepto(dto.getConcepto());
                         movimiento.setDescripcion(dto.getDescripcion());
                         movimiento.setTipo(dto.getTipo());
-                        transaccionesService.registrarTransaccion(uid, movimiento);
-                        // Calcular el nuevo día de ejecución
+                        transaccionesService.registrarTransaccion(spaceId, movimiento);
                         String nuevaEjecucion = calcularSiguienteEjecucion(dto);
-                        // Actualizar el campo siguienteEjecucion
                         DocumentReference transRecRef = colRef.document(transRecDoc.getId());
-                        transRecRef.update("siguienteEjecucion", nuevaEjecucion.toString()).get();
+                        transRecRef.update("siguienteEjecucion", nuevaEjecucion).get();
                     }
                 }
             }
@@ -217,7 +204,6 @@ public class TransaccionRecurrenteRepository {
     }
 
     private String calcularSiguienteDiaSemana(String diaSemana) {
-        // Obtener la fecha actual
         LocalDate hoy = LocalDate.now();
         DayOfWeek objetivo = switch (diaSemana.toLowerCase()) {
             case "lunes" -> DayOfWeek.MONDAY;
@@ -234,7 +220,7 @@ public class TransaccionRecurrenteRepository {
         if (diasHastaObjetivo <= 0) diasHastaObjetivo += 7;
         LocalDate siguiente = hoy.plusDays(diasHastaObjetivo);
         System.out.println("siguiente dia de la semana " + diaSemana + ": " + siguiente);
-        return siguiente.toString(); // Formato yyyy-MM-dd
+        return siguiente.toString();
     }
 
     public String calcularSiguienteFecha(LocalDate fecha, String periodicidad) {
@@ -258,24 +244,21 @@ public class TransaccionRecurrenteRepository {
             default:
                 siguiente = fecha;
         }
-        // Si la fecha ingresada es mayor al día de hoy, conservar esa fecha
         if (fecha.isAfter(hoy)) {
             return fecha.toString();
         }
         System.out.println("siguiente fecha para periodicidad " + periodicidad + ": " + siguiente);
-        return siguiente.toString(); // Formato yyyy-MM-dd
+        return siguiente.toString();
     }
 
     private String calcularSiguienteEjecucion(TransaccionRecurrente transaccion) {
-        // Lógica para calcular la siguiente ejecución basada en la periodicidad
-
         String siguienteEjecucion = "";
 
         System.out.println("Calculando siguiente ejecución para periodicidad: " + transaccion.getPeriodicidad());
 
         if (transaccion.getPeriodicidad().equals("Semanal")) {
             siguienteEjecucion = calcularSiguienteDiaSemana(transaccion.getDia());
-        }else{
+        } else {
             siguienteEjecucion = calcularSiguienteFecha(LocalDate.parse(transaccion.getFecha()), transaccion.getPeriodicidad());
         }
 

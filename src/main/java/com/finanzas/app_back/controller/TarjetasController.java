@@ -11,7 +11,7 @@ import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 
-//////////////////////////////     GET CUENTAS    //////////////////////////////
+//////////////////////////////     GET TARJETAS    //////////////////////////////
 
 
 @RestController
@@ -28,8 +28,9 @@ public class TarjetasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = tarjetasService.obtenerTarjetas(uid);
+            response = tarjetasService.obtenerTarjetas(spaceId, uid);
 
             return ResponseEntity.ok(response);
 
@@ -42,7 +43,7 @@ public class TarjetasController {
     }
 
 
-    ///////////////////////////////     REGISTRTA CUENTA    //////////////////////////////
+    ///////////////////////////////     REGISTRAR TARJETA    //////////////////////////////
 
     @PostMapping("/registrar")
     public ResponseEntity<GenericResponse> registrarTarjeta(HttpServletRequest request, @RequestBody TarjetaDto tarjetaData) {
@@ -51,6 +52,7 @@ public class TarjetasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = tarjetaData.validaCampos();
 
@@ -61,7 +63,7 @@ public class TarjetasController {
             }
 
             // Llamar al servicio para registrar la tarjeta
-            response = tarjetasService.registrarTarjeta(uid, tarjetaData);
+            response = tarjetasService.registrarTarjeta(spaceId, uid, tarjetaData);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -72,15 +74,16 @@ public class TarjetasController {
     }
 
 
-    ///////////////////////////////     ELIMINAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ELIMINAR TARJETA    //////////////////////////////
 
     @DeleteMapping("/eliminar/{tarjetaId}")
     public ResponseEntity<GenericResponse> eliminarTarjeta(HttpServletRequest request, @PathVariable String tarjetaId) {
-        
+
         GenericResponse response = new GenericResponse();
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (tarjetaId == null || tarjetaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -88,7 +91,7 @@ public class TarjetasController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = tarjetasService.eliminarTarjeta(uid, tarjetaId);
+            response = tarjetasService.eliminarTarjeta(spaceId, uid, tarjetaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -98,13 +101,14 @@ public class TarjetasController {
     }
 
 
-    ///////////////////////////////     ACTUALIZAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ACTUALIZAR TARJETA    //////////////////////////////
 
     @PutMapping("/actualizar/{tarjetaId}")
     public ResponseEntity<GenericResponse> actualizarTarjeta(HttpServletRequest request, @PathVariable String tarjetaId, @RequestBody TarjetaDto updatedTarjetaData) {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (tarjetaId == null || tarjetaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -119,7 +123,7 @@ public class TarjetasController {
                 return ResponseEntity.ok(response);
             }
 
-            response = tarjetasService.actualizarTarjeta(uid, tarjetaId, updatedTarjetaData);
+            response = tarjetasService.actualizarTarjeta(spaceId, uid, tarjetaId, updatedTarjetaData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -128,13 +132,14 @@ public class TarjetasController {
         }
     }
 
-    ///////////////////////////////     CONSULTA CUENTA    //////////////////////////////
+    ///////////////////////////////     CONSULTA TARJETA    //////////////////////////////
 
     @GetMapping("/{tarjetaId}")
     public ResponseEntity<GenericResponse> consultaTarjeta(HttpServletRequest request, @PathVariable String tarjetaId) {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (tarjetaId == null || tarjetaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -142,7 +147,7 @@ public class TarjetasController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = tarjetasService.consultaTarjeta(uid, tarjetaId);
+            response = tarjetasService.consultaTarjeta(spaceId, uid, tarjetaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -151,7 +156,7 @@ public class TarjetasController {
         }
     }
 
-    ///////////////////////////////     ORDENAR CUENTAS    //////////////////////////////
+    ///////////////////////////////     ORDENAR TARJETAS    //////////////////////////////
     @PostMapping("/orden")
     public ResponseEntity<GenericResponse> ordenTarjetas(HttpServletRequest request, @RequestBody ArrayList<TarjetaDto> tarjetasList) {
         GenericResponse response = new GenericResponse();
@@ -159,8 +164,9 @@ public class TarjetasController {
         try {
 
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = tarjetasService.ordenTarjetas(uid, tarjetasList);
+            response = tarjetasService.ordenTarjetas(spaceId, uid, tarjetasList);
         } catch (Exception e) {
             response.setCoderr("9999");
             response.setMessage("Error al ordenar las tarjeta: " + e.getMessage());
@@ -170,12 +176,13 @@ public class TarjetasController {
         return ResponseEntity.ok(response);
     }
 
-    ///////////////////////////////     ACTIVAR / DESACTIVAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ACTIVAR / DESACTIVAR TARJETA    //////////////////////////////
     @PutMapping("/activar/{tarjetaId}")
     public ResponseEntity<GenericResponse> activarTarjeta(HttpServletRequest request, @PathVariable String tarjetaId, @RequestBody boolean activa) {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (tarjetaId == null || tarjetaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -183,7 +190,7 @@ public class TarjetasController {
                 return ResponseEntity.ok(response);
             }
 
-            response = tarjetasService.activarTarjeta(uid, tarjetaId, activa);
+            response = tarjetasService.activarTarjeta(spaceId, uid, tarjetaId, activa);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");

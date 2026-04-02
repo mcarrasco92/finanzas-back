@@ -24,80 +24,75 @@ public class CategoriasRepository {
 
     private static final String COLLECTION_NAME = "categorias";
 
-    public String newCategoria(String uid, Categoria categoria) throws ExecutionException, InterruptedException {
+    public String newCategoria(String spaceId, Categoria categoria) throws ExecutionException, InterruptedException {
 
         System.out.println("Categoria a registrar: " + categoria);
-        
-        CollectionReference categorias = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+
+        CollectionReference categorias = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         DocumentReference document = categorias.document();
 
         ApiFuture<WriteResult> writeResult = document.set(categoria);
         writeResult.get();
 
-        return document.getId(); // Retorna el ID del documento creado
+        return document.getId();
     }
 
-    public ArrayList<CategoriaDto> getCategorias(String uid) throws ExecutionException, InterruptedException {
-        CollectionReference categoriasRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME);
+    public ArrayList<CategoriaDto> getCategorias(String spaceId) throws ExecutionException, InterruptedException {
+        CollectionReference categoriasRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME);
         ApiFuture<QuerySnapshot> querySnapshot = categoriasRef.get();
 
         ArrayList<CategoriaDto> categoriasList = new ArrayList<>();
         for (QueryDocumentSnapshot document : querySnapshot.get().getDocuments()) {
             CategoriaDto categoria = document.toObject(CategoriaDto.class);
-            categoria.setId(document.getId()); // Asigna el ID del documento a la categoria
-
+            categoria.setId(document.getId());
             categoriasList.add(categoria);
         }
 
         return categoriasList;
     }
 
-    public CategoriaDto getCategoriaById(String uid, String categoriaId) throws ExecutionException, InterruptedException {
-        DocumentReference categoriaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(categoriaId);
+    public CategoriaDto getCategoriaById(String spaceId, String categoriaId) throws ExecutionException, InterruptedException {
+        DocumentReference categoriaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(categoriaId);
         ApiFuture<DocumentSnapshot> future = categoriaRef.get();
         DocumentSnapshot document = future.get();
 
         if (document.exists()) {
             CategoriaDto categoria = document.toObject(CategoriaDto.class);
-            categoria.setId(document.getId()); // Asigna el ID del documento a la categoria
+            categoria.setId(document.getId());
             return categoria;
         } else {
-            return null; // O lanza una excepción si prefieres
+            return null;
         }
     }
 
-    public void updateCategoria(String uid, String categoriaId, Categoria categoria) throws ExecutionException, InterruptedException {
-        DocumentReference categoriaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(categoriaId);
+    public void updateCategoria(String spaceId, String categoriaId, Categoria categoria) throws ExecutionException, InterruptedException {
+        DocumentReference categoriaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(categoriaId);
         ApiFuture<WriteResult> writeResult = categoriaRef.set(categoria);
-        writeResult.get(); // Espera a que la operación se complete
+        writeResult.get();
     }
 
-    public void deleteCategoria(String uid, String categoriaId) throws ExecutionException, InterruptedException {
-        DocumentReference categoriaRef = firestore.collection("users").document(uid).collection(COLLECTION_NAME).document(categoriaId);
+    public void deleteCategoria(String spaceId, String categoriaId) throws ExecutionException, InterruptedException {
+        DocumentReference categoriaRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(categoriaId);
         ApiFuture<WriteResult> writeResult = categoriaRef.delete();
-        writeResult.get(); // Espera a que la operación se complete
+        writeResult.get();
     }
 
-    public Boolean getExistTransaccionesByCat(String uid, String categoriaId) throws ExecutionException, InterruptedException {
-        CollectionReference transaccionesRef = firestore.collection("users").document(uid).collection("transacciones");
+    public Boolean getExistTransaccionesByCat(String spaceId, String categoriaId) throws ExecutionException, InterruptedException {
+        CollectionReference transaccionesRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
 
-        // Consulta para catIngresoId
         ApiFuture<QuerySnapshot> queryIngreso = transaccionesRef
             .whereEqualTo("catIngresoId", categoriaId)
             .get();
 
-        // Consulta para catEgresoId
         ApiFuture<QuerySnapshot> queryEgreso = transaccionesRef
             .whereEqualTo("catEgresoId", categoriaId)
             .get();
 
-        // Combinar los resultados
         boolean existeEnIngreso = !queryIngreso.get().isEmpty();
         boolean existeEnEgreso = !queryEgreso.get().isEmpty();
 
-        return existeEnIngreso || existeEnEgreso; // Retorna true si existe en cualquiera de las dos consultas
+        return existeEnIngreso || existeEnEgreso;
+    }
 
-    }   
 
-    
 }

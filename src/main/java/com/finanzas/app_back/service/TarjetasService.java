@@ -11,6 +11,7 @@ import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Tarjetas.TarjetasList;
 import com.finanzas.app_back.dto.Transacciones.TransaccionDto;
 import com.finanzas.app_back.model.Tarjeta;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
 
@@ -25,20 +26,24 @@ public class TarjetasService {
     private TarjetasRepository tarjetasRepository;
     @Autowired
     private TransaccionesRepository transaccionesRepository;
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     private GenericResponse response = new GenericResponse();
 
 
-    public GenericResponse registrarTarjeta(String uid ,TarjetaDto dto) {
+    public GenericResponse registrarTarjeta(String spaceId, String uid, TarjetaDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Tarjeta tarjeta = new Tarjeta();
             tarjeta.setDataDto(dto);
             tarjeta.setSaldo(0.0);
             tarjeta.setActiva(true);
 
-            String tarjetaId = tarjetasRepository.newTarjeta(uid, tarjeta);
+            String tarjetaId = tarjetasRepository.newTarjeta(spaceId, tarjeta);
             dto.setId(tarjetaId);
 
             response.setCoderr("0000");
@@ -53,12 +58,14 @@ public class TarjetasService {
     }
 
 
-    public GenericResponse obtenerTarjetas(String uid) {
-        
-    
+    public GenericResponse obtenerTarjetas(String spaceId, String uid) {
+
+
         try {
 
-            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(uid);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
 
             if (tarjetas.isEmpty()) {
                 response.setCoderr("0001");
@@ -83,14 +90,14 @@ public class TarjetasService {
 
             for(TarjetaDto tarjeta: tarjetas){
 
-                tarjeta.setSaldoPeriodoActual(tarjetasRepository.saldoPeriodoActual(uid, tarjeta.getId()));
-                saldoMsiFuturosIndividual = tarjetasRepository.saldoMsiFuturos(uid, tarjeta.getId());
+                tarjeta.setSaldoPeriodoActual(tarjetasRepository.saldoPeriodoActual(spaceId, tarjeta.getId()));
+                saldoMsiFuturosIndividual = tarjetasRepository.saldoMsiFuturos(spaceId, tarjeta.getId());
                 tarjeta.setPagoPendiente(tarjeta.getSaldo() - tarjeta.getSaldoPeriodoActual() - saldoMsiFuturosIndividual);
 
                 if(tarjeta.isActiva()){
                     saldoTotal += tarjeta.getSaldo();
-                    
-                    transacciones = transaccionesRepository.getTransaccionesTarjetaByMonth(uid, fechaFormateada ,tarjeta.getId());
+
+                    transacciones = transaccionesRepository.getTransaccionesTarjetaByMonth(spaceId, fechaFormateada ,tarjeta.getId());
 
                     for(TransaccionDto transaccion: transacciones){
 
@@ -104,8 +111,8 @@ public class TarjetasService {
                     saldoAPagar += tarjeta.getPagoPendiente();
 
                 }
-                
-                
+
+
             }
 
             tarjetasList.setTarjetas(tarjetas);
@@ -125,11 +132,13 @@ public class TarjetasService {
     }
 
 
-    public GenericResponse consultaTarjeta(String uid, String tarjetaId) {
+    public GenericResponse consultaTarjeta(String spaceId, String uid, String tarjetaId) {
 
         try {
 
-            TarjetaDto tarjeta = tarjetasRepository.getTarjetaById(uid, tarjetaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TarjetaDto tarjeta = tarjetasRepository.getTarjetaById(spaceId, tarjetaId);
 
             if(tarjeta == null){
                 response.setCoderr("0001");
@@ -137,8 +146,8 @@ public class TarjetasService {
                 return response;
             }
 
-            tarjeta.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId));
-            tarjeta.setPagoPendiente(tarjetasRepository.pagoPendiente(uid, tarjetaId));
+            tarjeta.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(spaceId, tarjetaId));
+            tarjeta.setPagoPendiente(tarjetasRepository.pagoPendiente(spaceId, tarjetaId));
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta obtenida exitosamente.");
@@ -152,17 +161,19 @@ public class TarjetasService {
     }
 
 
-    public GenericResponse actualizarTarjeta(String uid, String tarjetaId, TarjetaDto updatedTarjetaDto) {
+    public GenericResponse actualizarTarjeta(String spaceId, String uid, String tarjetaId, TarjetaDto updatedTarjetaDto) {
 
         try {
 
-            TarjetaDto existingTarjetaDto = tarjetasRepository.getTarjetaById(uid, tarjetaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TarjetaDto existingTarjetaDto = tarjetasRepository.getTarjetaById(spaceId, tarjetaId);
 
             if(existingTarjetaDto == null){
                 response.setCoderr("0001");
                 response.setMessage("Tarjeta no encontrada.");
                 return response;
-            } 
+            }
 
             existingTarjetaDto.setNombre(updatedTarjetaDto.getNombre());
             existingTarjetaDto.setDescripcion(updatedTarjetaDto.getDescripcion());
@@ -174,15 +185,15 @@ public class TarjetasService {
             Tarjeta tarjeta = new Tarjeta();
             tarjeta.setDataDto(existingTarjetaDto);
 
-            tarjetasRepository.updateTarjeta(uid, tarjetaId, tarjeta);
+            tarjetasRepository.updateTarjeta(spaceId, tarjetaId, tarjeta);
 
-            existingTarjetaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId));
+            existingTarjetaDto.setTransacciones(transaccionesRepository.getExistTransaccionesByTarjeta(spaceId, tarjetaId));
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta actualizada exitosamente.");
             response.setData(existingTarjetaDto);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la tarjeta");
         }
@@ -191,25 +202,27 @@ public class TarjetasService {
     }
 
 
-    public GenericResponse eliminarTarjeta(String uid, String tarjetaId) {
+    public GenericResponse eliminarTarjeta(String spaceId, String uid, String tarjetaId) {
 
         try {
-            
-            TarjetaDto tarjeta = tarjetasRepository.getTarjetaById(uid, tarjetaId);
+
+            spaceRepository.validateMembership(spaceId, uid);
+
+            TarjetaDto tarjeta = tarjetasRepository.getTarjetaById(spaceId, tarjetaId);
 
             if(tarjeta == null){
                 response.setCoderr("0001");
                 response.setMessage("Tarjeta no encontrada.");
                 return response;
-            } 
+            }
 
-            if(transaccionesRepository.getExistTransaccionesByTarjeta(uid, tarjetaId)){
+            if(transaccionesRepository.getExistTransaccionesByTarjeta(spaceId, tarjetaId)){
                 response.setCoderr("1003");
                 response.setMessage("No se puede eliminar la tarjeta porque tiene transacciones asociadas.");
                 return response;
             }
 
-            tarjetasRepository.deleteTarjeta(uid, tarjetaId);
+            tarjetasRepository.deleteTarjeta(spaceId, tarjetaId);
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta eliminada exitosamente.");
@@ -220,21 +233,23 @@ public class TarjetasService {
 
         return response;
     }
-    
 
-    public GenericResponse ordenTarjetas(String uid, ArrayList<TarjetaDto> tarjetas){
+
+    public GenericResponse ordenTarjetas(String spaceId, String uid, ArrayList<TarjetaDto> tarjetas){
 
         int orden = 1;
         String tarjetaId = "";
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
+
         for (TarjetaDto tarjetaFor : tarjetas) {
 
             tarjetaId = tarjetaFor.getId();
-            
-            if (tarjetaId != null) { 
-                TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(uid, tarjetaId);
+
+            if (tarjetaId != null) {
+                TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(spaceId, tarjetaId);
 
                 if(tarjetaDto != null){
                     tarjetaDto.setOrden(orden);
@@ -242,9 +257,9 @@ public class TarjetasService {
 
                     Tarjeta tarjetaToUpdate = new Tarjeta();
                     tarjetaToUpdate.setDataDto(tarjetaDto);
-                    tarjetasRepository.updateTarjeta(uid, tarjetaId, tarjetaToUpdate);
+                    tarjetasRepository.updateTarjeta(spaceId, tarjetaId, tarjetaToUpdate);
                 }
-                
+
             }
         }
 
@@ -258,12 +273,13 @@ public class TarjetasService {
     }
 
 
-    public GenericResponse activarTarjeta(String uid, String tarjetaId, boolean activa) {
+    public GenericResponse activarTarjeta(String spaceId, String uid, String tarjetaId, boolean activa) {
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
 
-            TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(uid, tarjetaId);
+            TarjetaDto tarjetaDto = tarjetasRepository.getTarjetaById(spaceId, tarjetaId);
 
             if(tarjetaDto == null){
                 response.setCoderr("0001");
@@ -276,13 +292,13 @@ public class TarjetasService {
 
             Tarjeta tarjetaToUpdate = new Tarjeta();
             tarjetaToUpdate.setDataDto(tarjetaDto);
-            tarjetasRepository.updateTarjeta(uid, tarjetaId, tarjetaToUpdate);
+            tarjetasRepository.updateTarjeta(spaceId, tarjetaId, tarjetaToUpdate);
 
             response.setCoderr("0000");
             response.setMessage("Tarjeta actualizada exitosamente.");
             response.setData(activa);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la tarjeta");
         }

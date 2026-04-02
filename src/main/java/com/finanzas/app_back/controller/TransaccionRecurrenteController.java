@@ -19,6 +19,7 @@ public class TransaccionRecurrenteController {
     public ResponseEntity<GenericResponse> registrar(HttpServletRequest request, @RequestBody TransaccionRecurrenteDto dto) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
             String valida = dto.validaCampos();
             if (!valida.isEmpty()) {
                 GenericResponse response = new GenericResponse();
@@ -26,7 +27,7 @@ public class TransaccionRecurrenteController {
                 response.setMessage(valida);
                 return ResponseEntity.ok(response);
             }
-            return ResponseEntity.ok(service.registrarTransaccionRecurrente(uid, dto));
+            return ResponseEntity.ok(service.registrarTransaccionRecurrente(spaceId, uid, dto));
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al registrar la transacción recurrente");
         }
@@ -36,7 +37,8 @@ public class TransaccionRecurrenteController {
     public ResponseEntity<GenericResponse> obtenerTodos(HttpServletRequest request) {
         try {
             String uid = (String) request.getAttribute("uid");
-            return ResponseEntity.ok(service.obtenerTransaccionesRecurrentes(uid));
+            String spaceId = request.getHeader("X-Space-Id");
+            return ResponseEntity.ok(service.obtenerTransaccionesRecurrentes(spaceId, uid));
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al obtener las transacciones recurrentes");
         }
@@ -46,7 +48,8 @@ public class TransaccionRecurrenteController {
     public ResponseEntity<GenericResponse> obtenerPorId(HttpServletRequest request, @PathVariable String id) {
         try {
             String uid = (String) request.getAttribute("uid");
-            return ResponseEntity.ok(service.obtenerTransaccionRecurrenteById(uid, id));
+            String spaceId = request.getHeader("X-Space-Id");
+            return ResponseEntity.ok(service.obtenerTransaccionRecurrenteById(spaceId, uid, id));
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al obtener la transacción recurrente por ID");
         }
@@ -56,7 +59,8 @@ public class TransaccionRecurrenteController {
     public ResponseEntity<GenericResponse> eliminar(HttpServletRequest request, @PathVariable String id) {
         try {
             String uid = (String) request.getAttribute("uid");
-            return ResponseEntity.ok(service.eliminarTransaccionRecurrente(uid, id));
+            String spaceId = request.getHeader("X-Space-Id");
+            return ResponseEntity.ok(service.eliminarTransaccionRecurrente(spaceId, uid, id));
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al eliminar la transacción recurrente");
         }
@@ -66,6 +70,7 @@ public class TransaccionRecurrenteController {
     public ResponseEntity<GenericResponse> actualizar(HttpServletRequest request, @PathVariable String id, @RequestBody TransaccionRecurrenteDto dto) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
             String valida = dto.validaCampos();
             if (!valida.isEmpty()) {
                 GenericResponse response = new GenericResponse();
@@ -73,7 +78,7 @@ public class TransaccionRecurrenteController {
                 response.setMessage(valida);
                 return ResponseEntity.ok(response);
             }
-            return ResponseEntity.ok(service.actualizarTransaccionRecurrente(uid, id, dto));
+            return ResponseEntity.ok(service.actualizarTransaccionRecurrente(spaceId, uid, id, dto));
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al actualizar la transacción recurrente");
         }

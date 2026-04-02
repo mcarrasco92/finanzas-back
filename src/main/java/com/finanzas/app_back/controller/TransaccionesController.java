@@ -33,8 +33,9 @@ public class TransaccionesController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = transaccionesService.obtenerTransacciones(uid, filtroDto);
+            response = transaccionesService.obtenerTransacciones(spaceId, uid, filtroDto);
 
             return ResponseEntity.ok(response);
 
@@ -47,7 +48,7 @@ public class TransaccionesController {
     }
 
 
-    ///////////////////////////////     REGISTRTA CUENTA    //////////////////////////////
+    ///////////////////////////////     REGISTRAR TRANSACCION    //////////////////////////////
 
     @PostMapping("/registrar")
     public ResponseEntity<GenericResponse> registrarTransaccion(HttpServletRequest request, @RequestBody TransaccionDto transaccionData) {
@@ -56,6 +57,7 @@ public class TransaccionesController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = transaccionData.validaCampos();
 
@@ -66,7 +68,7 @@ public class TransaccionesController {
             }
 
             // Llamar al servicio para registrar la transaccion
-            response = transaccionesService.registrarTransaccion(uid, transaccionData);
+            response = transaccionesService.registrarTransaccion(spaceId, uid, transaccionData);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -77,15 +79,16 @@ public class TransaccionesController {
     }
 
 
-    ///////////////////////////////     ELIMINAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ELIMINAR TRANSACCION    //////////////////////////////
 
     @DeleteMapping("/eliminar/{transaccionId}")
     public ResponseEntity<GenericResponse> eliminarTransaccion(HttpServletRequest request, @PathVariable String transaccionId) {
-        
+
         GenericResponse response = new GenericResponse();
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (transaccionId == null || transaccionId.isEmpty()) {
                 response.setCoderr("1002");
@@ -93,7 +96,7 @@ public class TransaccionesController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = transaccionesService.eliminarTransaccion(uid, transaccionId);
+            response = transaccionesService.eliminarTransaccion(spaceId, uid, transaccionId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -103,13 +106,14 @@ public class TransaccionesController {
     }
 
 
-    ///////////////////////////////     ACTUALIZAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ACTUALIZAR TRANSACCION    //////////////////////////////
 
     @PutMapping("/actualizar/{transaccionId}")
     public ResponseEntity<GenericResponse> actualizarTransaccion(HttpServletRequest request, @PathVariable String transaccionId, @RequestBody TransaccionDto updatedTransaccionData) {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (transaccionId == null || transaccionId.isEmpty()) {
                 response.setCoderr("1002");
@@ -124,7 +128,7 @@ public class TransaccionesController {
                 return ResponseEntity.ok(response);
             }
 
-            response = transaccionesService.actualizarTransaccion(uid, transaccionId, updatedTransaccionData);
+            response = transaccionesService.actualizarTransaccion(spaceId, uid, transaccionId, updatedTransaccionData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -133,13 +137,14 @@ public class TransaccionesController {
         }
     }
 
-    ///////////////////////////////     CONSULTA CUENTA    //////////////////////////////
+    ///////////////////////////////     CONSULTA TRANSACCION    //////////////////////////////
 
     @GetMapping("/{transaccionId}")
     public ResponseEntity<GenericResponse> consultaTransaccion(HttpServletRequest request, @PathVariable String transaccionId) {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (transaccionId == null || transaccionId.isEmpty()) {
                 response.setCoderr("1002");
@@ -147,7 +152,7 @@ public class TransaccionesController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = transaccionesService.consultaTransaccion(uid, transaccionId);
+            response = transaccionesService.consultaTransaccion(spaceId, uid, transaccionId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");

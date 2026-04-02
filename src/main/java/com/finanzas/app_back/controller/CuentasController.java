@@ -28,8 +28,9 @@ public class CuentasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = cuentasService.obtenerCuentas(uid);
+            response = cuentasService.obtenerCuentas(spaceId, uid);
 
             return ResponseEntity.ok(response);
 
@@ -51,6 +52,7 @@ public class CuentasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = cuentaData.validaCampos();
 
@@ -61,7 +63,7 @@ public class CuentasController {
             }
 
             // Llamar al servicio para registrar la cuenta
-            response = cuentasService.registrarCuenta(uid, cuentaData);
+            response = cuentasService.registrarCuenta(spaceId, uid, cuentaData);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -76,11 +78,12 @@ public class CuentasController {
 
     @DeleteMapping("/eliminar/{cuentaId}")
     public ResponseEntity<GenericResponse> eliminarCuenta(HttpServletRequest request, @PathVariable String cuentaId) {
-        
+
         GenericResponse response = new GenericResponse();
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (cuentaId == null || cuentaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -88,7 +91,7 @@ public class CuentasController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = cuentasService.eliminarCuenta(uid, cuentaId);
+            response = cuentasService.eliminarCuenta(spaceId, uid, cuentaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -105,6 +108,7 @@ public class CuentasController {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (cuentaId == null || cuentaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -119,7 +123,7 @@ public class CuentasController {
                 return ResponseEntity.ok(response);
             }
 
-            response = cuentasService.actualizarCuenta(uid, cuentaId, updatedCuentaData);
+            response = cuentasService.actualizarCuenta(spaceId, uid, cuentaId, updatedCuentaData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -135,6 +139,7 @@ public class CuentasController {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (cuentaId == null || cuentaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -142,7 +147,7 @@ public class CuentasController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            response = cuentasService.consultaCuenta(uid, cuentaId);
+            response = cuentasService.consultaCuenta(spaceId, uid, cuentaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");
@@ -159,8 +164,9 @@ public class CuentasController {
         try {
 
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = cuentasService.ordenCuentas(uid, cuentasList);
+            response = cuentasService.ordenCuentas(spaceId, uid, cuentasList);
         } catch (Exception e) {
             response.setCoderr("9999");
             response.setMessage("Error al ordenar las cuenta: " + e.getMessage());
@@ -176,6 +182,7 @@ public class CuentasController {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             if (cuentaId == null || cuentaId.isEmpty()) {
                 response.setCoderr("1002");
@@ -183,7 +190,7 @@ public class CuentasController {
                 return ResponseEntity.ok(response);
             }
 
-            response = cuentasService.activarCuenta(uid, cuentaId, activa);
+            response = cuentasService.activarCuenta(spaceId, uid, cuentaId, activa);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCoderr("9999");

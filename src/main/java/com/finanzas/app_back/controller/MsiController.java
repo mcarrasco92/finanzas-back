@@ -30,6 +30,7 @@ public class MsiController {
     public ResponseEntity<GenericResponse> registrarMsi(HttpServletRequest request, @RequestBody MsiDto msiData) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             System.out.println("Datos recibidos en el controlador: " + msiData);
 
@@ -41,7 +42,7 @@ public class MsiController {
                 return ResponseEntity.ok(response);
             }
 
-            GenericResponse response = MsiService.registrarMsi(uid, msiData);
+            GenericResponse response = MsiService.registrarMsi(spaceId, uid, msiData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al registrar los MSI");
@@ -52,8 +53,9 @@ public class MsiController {
     public ResponseEntity<GenericResponse> getMsisByTarjetaId(HttpServletRequest request, @PathVariable String tarjetaId) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            GenericResponse response = MsiService.obtenerMsisByTarjetaId(uid, tarjetaId);
+            GenericResponse response = MsiService.obtenerMsisByTarjetaId(spaceId, uid, tarjetaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al obtener los MSI");
@@ -64,10 +66,11 @@ public class MsiController {
     public ResponseEntity<GenericResponse> getMsis(HttpServletRequest request) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            System.out.println("UID en getMsis: " + uid);
+            System.out.println("SpaceId en getMsis: " + spaceId);
 
-            GenericResponse response = MsiService.obtenerMsis(uid);
+            GenericResponse response = MsiService.obtenerMsis(spaceId, uid);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al obtener los MSI");
@@ -78,7 +81,8 @@ public class MsiController {
     public ResponseEntity<GenericResponse> deleteMsi(HttpServletRequest request, @PathVariable String msiId) {
         try {
             String uid = (String) request.getAttribute("uid");
-            MsiService.eliminarMsi(uid, msiId);
+            String spaceId = request.getHeader("X-Space-Id");
+            MsiService.eliminarMsi(spaceId, uid, msiId);
             GenericResponse response = new GenericResponse();
             response.setCoderr("0000");
             response.setMessage("MSI eliminado exitosamente.");
@@ -93,6 +97,7 @@ public class MsiController {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = updatedMsiData.validaCampos();
             if (!valida.isEmpty()) {
@@ -101,7 +106,7 @@ public class MsiController {
                 return response;
             }
 
-            response = MsiService.actualizaMsi(uid, msiId, updatedMsiData);
+            response = MsiService.actualizaMsi(spaceId, uid, msiId, updatedMsiData);
             return response;
         } catch (Exception e) {
             response = new GenericResponse();
@@ -111,7 +116,6 @@ public class MsiController {
         }
     }
 
-    
 
 
     private ResponseEntity<GenericResponse> manejarExcepcion(Exception e, String mensaje) {
@@ -121,6 +125,5 @@ public class MsiController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
-    
 
 }

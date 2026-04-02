@@ -1,5 +1,6 @@
 package com.finanzas.app_back.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.finanzas.app_back.dto.User.UserRegistration;
@@ -20,6 +21,9 @@ import java.util.Base64;
 
 @Service
 public class UserService {
+
+    @Autowired
+    private SpaceService spaceService;
 
     private final Key jwtKey = new SecretKeySpec(
     Base64.getDecoder().decode("dAHNfXl8x/3oc5zEdUqy+oxUZgthsM13wzhv/WSVWew="), 
@@ -65,7 +69,8 @@ public class UserService {
                 .setPassword(dto.getPassword())
                 .setDisplayName(dto.getName());
 
-            FirebaseAuth.getInstance().createUser(request);
+            UserRecord createdUser = FirebaseAuth.getInstance().createUser(request);
+            spaceService.createPersonalSpace(createdUser.getUid(), dto.getName() + "'s Space");
 
             resp.setCoderr("0000");
             resp.setMessage("Usuario creado exitosamente.");

@@ -42,8 +42,9 @@ public class ResumenMensualController {
             }
 
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
-            response = resumenMensualService.obtenerResumenMensual(uid, mes, anio);
+            response = resumenMensualService.obtenerResumenMensual(spaceId, uid, mes, anio);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

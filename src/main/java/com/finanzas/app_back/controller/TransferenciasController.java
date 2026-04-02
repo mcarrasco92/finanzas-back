@@ -33,6 +33,7 @@ public class TransferenciasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = transferenciaData.validaCampos();
 
@@ -43,7 +44,7 @@ public class TransferenciasController {
             }
 
             // Llamar al servicio para registrar la transaccion
-            response = transferenciasService.registrarTransferencia(uid, transferenciaData);
+            response = transferenciasService.registrarTransferencia(spaceId, uid, transferenciaData);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -61,9 +62,10 @@ public class TransferenciasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             // Llamar al servicio para obtener la transferencia por ID
-            response = transferenciasService.getTransferenciaById(uid, transferenciaId);
+            response = transferenciasService.getTransferenciaById(spaceId, uid, transferenciaId);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -80,9 +82,10 @@ public class TransferenciasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             // Llamar al servicio para eliminar la transferencia por ID
-            response = transferenciasService.eliminarTransferencia(uid, transferenciaId);
+            response = transferenciasService.eliminarTransferencia(spaceId, uid, transferenciaId);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -97,6 +100,7 @@ public class TransferenciasController {
         GenericResponse response = new GenericResponse();
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = updatedData.validaCampos();
 
@@ -107,7 +111,7 @@ public class TransferenciasController {
             }
 
             // Llamar al servicio para actualizar la transferencia
-            response = transferenciasService.actualizarTransferencia(uid, transferenciaId, updatedData);
+            response = transferenciasService.actualizarTransferencia(spaceId, uid, transferenciaId, updatedData);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -115,7 +119,7 @@ public class TransferenciasController {
             response.setMessage("Error al actualizar la transferencia: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-    };  
-    
+    };
+
 
 }

@@ -24,7 +24,8 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
-            response = categoriasService.obtenerCategorias(uid);
+            String spaceId = request.getHeader("X-Space-Id");
+            response = categoriasService.obtenerCategorias(spaceId, uid);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al recuperar las categorias");
@@ -33,12 +34,13 @@ public class CategoriasController {
     }
 
 
-    ///////////////////////////////     REGISTRTA CUENTA    //////////////////////////////
+    ///////////////////////////////     REGISTRAR CATEGORIA    //////////////////////////////
 
     @PostMapping("/registrar")
     public ResponseEntity<GenericResponse> registrarCategoria(HttpServletRequest request, @RequestBody CategoriaDto categoriaData) {
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = categoriaData.validaCampos();
             if (!valida.isEmpty()) {
@@ -49,7 +51,7 @@ public class CategoriasController {
             }
 
             categoriaData.setActiva(true);
-            GenericResponse response = categoriasService.registrarCategoria(uid, categoriaData);
+            GenericResponse response = categoriasService.registrarCategoria(spaceId, uid, categoriaData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al registrar la categoría");
@@ -57,7 +59,7 @@ public class CategoriasController {
     }
 
 
-    ///////////////////////////////     ELIMINAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ELIMINAR CATEGORIA    //////////////////////////////
 
     @DeleteMapping("/eliminar/{categoriaId}")
     public ResponseEntity<GenericResponse> eliminarCategoria(HttpServletRequest request, @PathVariable String categoriaId) {
@@ -66,7 +68,8 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
-            GenericResponse response = categoriasService.eliminarCategoria(uid, categoriaId);
+            String spaceId = request.getHeader("X-Space-Id");
+            GenericResponse response = categoriasService.eliminarCategoria(spaceId, uid, categoriaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al eliminar la categoría");
@@ -74,7 +77,7 @@ public class CategoriasController {
     }
 
 
-    ///////////////////////////////     ACTUALIZAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ACTUALIZAR CATEGORIA    //////////////////////////////
 
     @PutMapping("/actualizar/{categoriaId}")
     public ResponseEntity<GenericResponse> actualizarCategoria(HttpServletRequest request, @PathVariable String categoriaId, @RequestBody CategoriaDto updatedCategoriaData) {
@@ -83,6 +86,7 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
 
             String valida = updatedCategoriaData.validaCampos();
             if (!valida.isEmpty()) {
@@ -92,14 +96,14 @@ public class CategoriasController {
                 return ResponseEntity.ok(response);
             }
 
-            GenericResponse response = categoriasService.actualizarCategoria(uid, categoriaId, updatedCategoriaData);
+            GenericResponse response = categoriasService.actualizarCategoria(spaceId, uid, categoriaId, updatedCategoriaData);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al actualizar la categoría");
         }
     }
 
-    ///////////////////////////////     CONSULTA CUENTA    //////////////////////////////
+    ///////////////////////////////     CONSULTA CATEGORIA    //////////////////////////////
 
     @GetMapping("/{categoriaId}")
     public ResponseEntity<GenericResponse> consultaCategoria(HttpServletRequest request, @PathVariable String categoriaId) {
@@ -108,21 +112,23 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
-            GenericResponse response = categoriasService.consultaCategoria(uid, categoriaId);
+            String spaceId = request.getHeader("X-Space-Id");
+            GenericResponse response = categoriasService.consultaCategoria(spaceId, uid, categoriaId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al consultar la categoría");
         }
     }
 
-    ///////////////////////////////     ORDENAR CUENTAS    //////////////////////////////
+    ///////////////////////////////     ORDENAR CATEGORIAS    //////////////////////////////
     @PostMapping("/orden")
     public ResponseEntity<GenericResponse> ordenCategorias(HttpServletRequest request, @RequestBody ArrayList<CategoriaDto> categoriasList) {
         GenericResponse response = new GenericResponse();
 
         try {
             String uid = (String) request.getAttribute("uid");
-            response = categoriasService.ordenCategorias(uid, categoriasList);
+            String spaceId = request.getHeader("X-Space-Id");
+            response = categoriasService.ordenCategorias(spaceId, uid, categoriasList);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al ordenar las categorias");
@@ -130,7 +136,7 @@ public class CategoriasController {
 
     }
 
-    ///////////////////////////////     ACTIVAR / DESACTIVAR CUENTA    //////////////////////////////
+    ///////////////////////////////     ACTIVAR / DESACTIVAR CATEGORIA    //////////////////////////////
     @PutMapping("/activar/{categoriaId}")
     public ResponseEntity<GenericResponse> activarCategoria(HttpServletRequest request, @PathVariable String categoriaId, @RequestBody Boolean activa) {
         ResponseEntity<GenericResponse> validacion = validarCategoriaId(categoriaId);
@@ -138,7 +144,8 @@ public class CategoriasController {
 
         try {
             String uid = (String) request.getAttribute("uid");
-            GenericResponse response = categoriasService.activarCategoria(uid, categoriaId, activa);
+            String spaceId = request.getHeader("X-Space-Id");
+            GenericResponse response = categoriasService.activarCategoria(spaceId, uid, categoriaId, activa);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return manejarExcepcion(e, "Error al activar la categoría");
@@ -163,12 +170,5 @@ public class CategoriasController {
         response.setMessage(mensaje + ": " + e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
-
-
-
-
-
-
-
 
 }

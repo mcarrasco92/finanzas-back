@@ -48,15 +48,15 @@ public class JwtInterceptor implements HandlerInterceptor {
                     .getBody();
     
             String uid = claims.get("uid", String.class);
-    
+
             if (uid == null || uid.isEmpty()) {
                 response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 response.getWriter().write("{\"coderr\":\"1001\",\"message\":\"Token inválido.\"}");
                 return false; // Detener la ejecución
             }
-    
-            // Almacenar el UID en el request para usarlo en los controladores
+
             request.setAttribute("uid", uid);
+            request.setAttribute("email", claims.get("email", String.class));
     
         } catch (Exception e) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());

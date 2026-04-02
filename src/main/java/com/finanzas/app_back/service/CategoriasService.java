@@ -9,6 +9,7 @@ import com.finanzas.app_back.dto.Categorias.CategoriaDto;
 import com.finanzas.app_back.dto.Categorias.CategoriasList;
 import com.finanzas.app_back.model.Categoria;
 import com.finanzas.app_back.repositories.CategoriasRepository;
+import com.finanzas.app_back.repositories.SpaceRepository;
 
 @Service
 public class CategoriasService {
@@ -18,18 +19,22 @@ public class CategoriasService {
 
     @Autowired
     private CategoriasRepository categoriasRepository;
+    @Autowired
+    private SpaceRepository spaceRepository;
 
     private GenericResponse response = new GenericResponse();
 
 
-    public GenericResponse registrarCategoria(String uid ,CategoriaDto dto) {
+    public GenericResponse registrarCategoria(String spaceId, String uid, CategoriaDto dto) {
 
         try {
+
+            spaceRepository.validateMembership(spaceId, uid);
 
             Categoria categoria = new Categoria();
             categoria.setDataDto(dto);
 
-            String categoriaId = categoriasRepository.newCategoria(uid, categoria);
+            String categoriaId = categoriasRepository.newCategoria(spaceId, categoria);
             dto.setId(categoriaId);
 
             response.setCoderr("0000");
@@ -44,12 +49,14 @@ public class CategoriasService {
     }
 
 
-    public GenericResponse obtenerCategorias(String uid) {
-        
-    
+    public GenericResponse obtenerCategorias(String spaceId, String uid) {
+
+
         try {
 
-            ArrayList<CategoriaDto> categorias = categoriasRepository.getCategorias(uid);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            ArrayList<CategoriaDto> categorias = categoriasRepository.getCategorias(spaceId);
 
             if (categorias.isEmpty()) {
                 response.setCoderr("0001");
@@ -71,11 +78,13 @@ public class CategoriasService {
     }
 
 
-    public GenericResponse consultaCategoria(String uid, String categoriaId) {
+    public GenericResponse consultaCategoria(String spaceId, String uid, String categoriaId) {
 
         try {
 
-            CategoriaDto categoria = categoriasRepository.getCategoriaById(uid, categoriaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CategoriaDto categoria = categoriasRepository.getCategoriaById(spaceId, categoriaId);
 
             if(categoria == null){
                 response.setCoderr("0001");
@@ -83,7 +92,7 @@ public class CategoriasService {
                 return response;
             }
 
-            categoria.setTransacciones(categoriasRepository.getExistTransaccionesByCat(uid, categoriaId));
+            categoria.setTransacciones(categoriasRepository.getExistTransaccionesByCat(spaceId, categoriaId));
 
             response.setCoderr("0000");
             response.setMessage("Categoria obtenida exitosamente.");
@@ -97,17 +106,19 @@ public class CategoriasService {
     }
 
 
-    public GenericResponse actualizarCategoria(String uid, String categoriaId, CategoriaDto updatedCategoriaDto) {
+    public GenericResponse actualizarCategoria(String spaceId, String uid, String categoriaId, CategoriaDto updatedCategoriaDto) {
 
         try {
 
-            CategoriaDto existingCategoriaDto = categoriasRepository.getCategoriaById(uid, categoriaId);
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CategoriaDto existingCategoriaDto = categoriasRepository.getCategoriaById(spaceId, categoriaId);
 
             if(existingCategoriaDto == null){
                 response.setCoderr("0001");
                 response.setMessage("Categoria no encontrada.");
                 return response;
-            } 
+            }
 
             existingCategoriaDto.setNombre(updatedCategoriaDto.getNombre());
             existingCategoriaDto.setTipo(updatedCategoriaDto.getTipo());
@@ -116,13 +127,13 @@ public class CategoriasService {
             Categoria categoria = new Categoria();
             categoria.setDataDto(existingCategoriaDto);
 
-            categoriasRepository.updateCategoria(uid, categoriaId, categoria);
+            categoriasRepository.updateCategoria(spaceId, categoriaId, categoria);
 
             response.setCoderr("0000");
             response.setMessage("Categoria actualizada exitosamente.");
             response.setData(existingCategoriaDto);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la categoria");
         }
@@ -131,11 +142,13 @@ public class CategoriasService {
     }
 
 
-    public GenericResponse eliminarCategoria(String uid, String categoriaId) {
+    public GenericResponse eliminarCategoria(String spaceId, String uid, String categoriaId) {
 
         try {
-            
-            CategoriaDto categoria = categoriasRepository.getCategoriaById(uid, categoriaId);
+
+            spaceRepository.validateMembership(spaceId, uid);
+
+            CategoriaDto categoria = categoriasRepository.getCategoriaById(spaceId, categoriaId);
 
             if(categoria == null){
                 response.setCoderr("0001");
@@ -143,13 +156,13 @@ public class CategoriasService {
                 return response;
             }
 
-            if(categoriasRepository.getExistTransaccionesByCat(uid, categoriaId)){
+            if(categoriasRepository.getExistTransaccionesByCat(spaceId, categoriaId)){
                 response.setCoderr("0002");
                 response.setMessage("No se puede eliminar la categoria porque tiene transacciones asociadas.");
                 return response;
             }
 
-            categoriasRepository.deleteCategoria(uid, categoriaId);
+            categoriasRepository.deleteCategoria(spaceId, categoriaId);
 
             response.setCoderr("0000");
             response.setMessage("Categoria eliminada exitosamente.");
@@ -159,21 +172,23 @@ public class CategoriasService {
 
         return response;
     }
-    
 
-    public GenericResponse ordenCategorias(String uid, ArrayList<CategoriaDto> categorias){
+
+    public GenericResponse ordenCategorias(String spaceId, String uid, ArrayList<CategoriaDto> categorias){
 
         int orden = 1;
         String categoriaId = "";
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
+
         for (CategoriaDto categoriaFor : categorias) {
 
             categoriaId = categoriaFor.getId();
-            
-            if (categoriaId != null) { 
-                CategoriaDto categoriaDto = categoriasRepository.getCategoriaById(uid, categoriaId);
+
+            if (categoriaId != null) {
+                CategoriaDto categoriaDto = categoriasRepository.getCategoriaById(spaceId, categoriaId);
 
                 if(categoriaDto != null){
                     categoriaDto.setOrden(orden);
@@ -181,9 +196,9 @@ public class CategoriasService {
 
                     Categoria categoriaToUpdate = new Categoria();
                     categoriaToUpdate.setDataDto(categoriaDto);
-                    categoriasRepository.updateCategoria(uid, categoriaId, categoriaToUpdate);
+                    categoriasRepository.updateCategoria(spaceId, categoriaId, categoriaToUpdate);
                 }
-                
+
             }
         }
 
@@ -198,12 +213,13 @@ public class CategoriasService {
 
 
 
-    public GenericResponse activarCategoria(String uid, String categoriaId, boolean activa) {
+    public GenericResponse activarCategoria(String spaceId, String uid, String categoriaId, boolean activa) {
 
         try {
 
+            spaceRepository.validateMembership(spaceId, uid);
 
-            CategoriaDto categoriaDto = categoriasRepository.getCategoriaById(uid, categoriaId);
+            CategoriaDto categoriaDto = categoriasRepository.getCategoriaById(spaceId, categoriaId);
 
             if(categoriaDto == null){
                 response.setCoderr("0001");
@@ -216,32 +232,19 @@ public class CategoriasService {
 
             Categoria categoriaToUpdate = new Categoria();
             categoriaToUpdate.setDataDto(categoriaDto);
-            categoriasRepository.updateCategoria(uid, categoriaId, categoriaToUpdate);
+            categoriasRepository.updateCategoria(spaceId, categoriaId, categoriaToUpdate);
 
             response.setCoderr("0000");
             response.setMessage("Categoria actualizada exitosamente.");
             response.setData(activa);
 
-            
+
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al actualizar la categoria");
         }
 
         return response;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     private CategoriasList separarCategoriasPorTipo(ArrayList<CategoriaDto> categorias) {

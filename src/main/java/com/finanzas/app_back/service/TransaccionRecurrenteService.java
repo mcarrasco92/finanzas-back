@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.finanzas.app_back.dto.GenericResponse;
 import com.finanzas.app_back.dto.TransaccionRecurrente.TransaccionRecurrenteDto;
 import com.finanzas.app_back.model.TransaccionRecurrente;
+import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TransaccionRecurrenteRepository;
 
 @Service
@@ -13,15 +14,18 @@ public class TransaccionRecurrenteService {
     private GeneralService generalService;
     @Autowired
     private TransaccionRecurrenteRepository repository;
+    @Autowired
+    private SpaceRepository spaceRepository;
     private GenericResponse response = new GenericResponse();
 
-    public GenericResponse registrarTransaccionRecurrente(String uid, TransaccionRecurrenteDto dto) {
+    public GenericResponse registrarTransaccionRecurrente(String spaceId, String uid, TransaccionRecurrenteDto dto) {
         try {
+            spaceRepository.validateMembership(spaceId, uid);
             TransaccionRecurrente transaccion = new TransaccionRecurrente();
 
             transaccion.setData(dto);
 
-            String id = repository.newTransaccionRecurrente(uid, transaccion);
+            String id = repository.newTransaccionRecurrente(spaceId, transaccion);
             dto.setId(id);
             response.setCoderr("0000");
             response.setMessage("Transacción recurrente registrada exitosamente.");
@@ -32,31 +36,34 @@ public class TransaccionRecurrenteService {
         return response;
     }
 
-    public GenericResponse obtenerTransaccionesRecurrentes(String uid) {
+    public GenericResponse obtenerTransaccionesRecurrentes(String spaceId, String uid) {
         try {
+            spaceRepository.validateMembership(spaceId, uid);
             response.setCoderr("0000");
             response.setMessage("Transacciones recurrentes obtenidas exitosamente.");
-            response.setData(repository.getTransaccionesRecurrentes(uid));
+            response.setData(repository.getTransaccionesRecurrentes(spaceId));
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al obtener las transacciones recurrentes");
         }
         return response;
     }
 
-    public GenericResponse obtenerTransaccionRecurrenteById(String uid, String id) {
+    public GenericResponse obtenerTransaccionRecurrenteById(String spaceId, String uid, String id) {
         try {
+            spaceRepository.validateMembership(spaceId, uid);
             response.setCoderr("0000");
             response.setMessage("Transacción recurrente obtenida exitosamente.");
-            response.setData(repository.getTransaccionRecurrenteById(uid, id));
+            response.setData(repository.getTransaccionRecurrenteById(spaceId, id));
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al obtener la transacción recurrente");
         }
         return response;
     }
 
-    public GenericResponse eliminarTransaccionRecurrente(String uid, String id) {
+    public GenericResponse eliminarTransaccionRecurrente(String spaceId, String uid, String id) {
         try {
-            repository.deleteTransaccionRecurrente(uid, id);
+            spaceRepository.validateMembership(spaceId, uid);
+            repository.deleteTransaccionRecurrente(spaceId, id);
             response.setCoderr("0000");
             response.setMessage("Transacción recurrente eliminada exitosamente.");
         } catch (Exception e) {
@@ -65,11 +72,12 @@ public class TransaccionRecurrenteService {
         return response;
     }
 
-    public GenericResponse actualizarTransaccionRecurrente(String uid, String id, TransaccionRecurrenteDto dto) {
+    public GenericResponse actualizarTransaccionRecurrente(String spaceId, String uid, String id, TransaccionRecurrenteDto dto) {
         try {
+            spaceRepository.validateMembership(spaceId, uid);
             TransaccionRecurrente transaccion = new TransaccionRecurrente();
             transaccion.setData(dto);
-            repository.actualizarTransaccionRecurrente(uid, id, transaccion);
+            repository.actualizarTransaccionRecurrente(spaceId, id, transaccion);
             response.setCoderr("0000");
             response.setMessage("Transacción recurrente actualizada exitosamente.");
         } catch (Exception e) {
