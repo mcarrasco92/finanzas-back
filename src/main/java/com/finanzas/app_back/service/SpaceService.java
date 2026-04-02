@@ -1,20 +1,26 @@
 package com.finanzas.app_back.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.finanzas.app_back.dto.GenericResponse;
 import com.finanzas.app_back.dto.Space.AcceptInvitationRequest;
-import com.finanzas.app_back.dto.Space.MemberDto;
-import com.google.firebase.auth.FirebaseAuth;
 import com.finanzas.app_back.dto.Space.CreateInvitationRequest;
 import com.finanzas.app_back.dto.Space.CreateSpaceRequest;
 import com.finanzas.app_back.dto.Space.InvitationDto;
+import com.finanzas.app_back.dto.Space.MemberDto;
 import com.finanzas.app_back.model.Invitation;
 import com.finanzas.app_back.model.Space;
 import com.finanzas.app_back.repositories.SpaceRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GetUsersResult;
+import com.google.firebase.auth.UidIdentifier;
+import com.google.firebase.auth.UserIdentifier;
 
 @Service
 public class SpaceService {
@@ -68,13 +74,20 @@ public class SpaceService {
         GenericResponse response = new GenericResponse();
         try {
             spaceRepository.validateMembership(spaceId, uid);
-            java.util.List<MemberDto> members = spaceRepository.getMembersBySpace(spaceId);
-            for (MemberDto member : members) {
+            List<MemberDto> members = spaceRepository.getMembersBySpace(spaceId);
+            if (!members.isEmpty()) {
+                List<UserIdentifier> identifiers = members.stream()
+                        .map(m -> new UidIdentifier(m.getUserId()))
+                        .collect(Collectors.toList());
                 try {
-                    String name = FirebaseAuth.getInstance().getUser(member.getUserId()).getDisplayName();
-                    member.setName(name);
+                    GetUsersResult result = FirebaseAuth.getInstance().getUsers(identifiers);
+                    Map<String, String> nameByUid = result.getUsers().stream()
+                            .collect(Collectors.toMap(
+                                    ur -> ur.getUid(),
+                                    ur -> ur.getDisplayName() != null ? ur.getDisplayName() : ""));
+                    members.forEach(m -> m.setName(nameByUid.get(m.getUserId())));
                 } catch (Exception ignored) {
-                    // Si no se puede obtener el nombre, se deja null
+                    // Si falla el lookup de nombres, se retornan los miembros sin nombre
                 }
             }
             response.setCoderr("0000");
@@ -89,9 +102,7 @@ public class SpaceService {
     public GenericResponse createInvitation(String spaceId, String uid, CreateInvitationRequest req) {
         GenericResponse response = new GenericResponse();
         try {
-            spaceRepository.validateMembership(spaceId, uid);
-
-            String role = spaceRepository.getMemberRole(spaceId, uid);
+            String role = spaceRepository.validateAndGetRole(spaceId, uid);
             if (!"owner".equals(role) && !"admin".equals(role)) {
                 response.setCoderr("1006");
                 response.setMessage("No tienes permisos para invitar miembros a este space.");
@@ -163,7 +174,7 @@ public class SpaceService {
     public GenericResponse removeMember(String spaceId, String uid, String targetUserId) {
         GenericResponse response = new GenericResponse();
         try {
-            String role = spaceRepository.getMemberRole(spaceId, uid);
+            String role = spaceRepository.validateAndGetRole(spaceId, uid);
             if (!"owner".equals(role)) {
                 response.setCoderr("1006");
                 response.setMessage("Solo el owner puede eliminar miembros del space.");
@@ -191,8 +202,7 @@ public class SpaceService {
     public GenericResponse renameSpace(String spaceId, String uid, String newName) {
         GenericResponse response = new GenericResponse();
         try {
-            spaceRepository.validateMembership(spaceId, uid);
-            String role = spaceRepository.getMemberRole(spaceId, uid);
+            String role = spaceRepository.validateAndGetRole(spaceId, uid);
             if (!"owner".equals(role)) {
                 response.setCoderr("1006");
                 response.setMessage("Solo el owner puede renombrar el space.");
@@ -210,8 +220,7 @@ public class SpaceService {
     public GenericResponse deleteSpace(String spaceId, String uid) {
         GenericResponse response = new GenericResponse();
         try {
-            spaceRepository.validateMembership(spaceId, uid);
-            String role = spaceRepository.getMemberRole(spaceId, uid);
+            String role = spaceRepository.validateAndGetRole(spaceId, uid);
             if (!"owner".equals(role)) {
                 response.setCoderr("1006");
                 response.setMessage("Solo el owner puede eliminar el space.");

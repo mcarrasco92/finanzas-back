@@ -74,6 +74,8 @@ public class TransferenciasService {
                 return response;
             }
 
+            transferencia.setNombreCuentaOrigen(cuentaOrigen.getNombre());
+
             if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")){
                 cuentaDestinoDto = cuentasRepository.getCuentaById(spaceId, transferencia.getCuentaDestinoId());
                 if(cuentaDestinoDto == null){
@@ -81,9 +83,8 @@ public class TransferenciasService {
                     response.setMessage("La cuenta destino no existe.");
                     return response;
                 }
-
+                transferencia.setNombreCuentaDestino(cuentaDestinoDto.getNombre());
                 transferenciaid = transferenciasRepository.newTransferenciaCuenta(spaceId, transferencia, cuentaOrigen, cuentaDestinoDto);
-
 
             } else if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){
                 tarjetaDestinoDto = tarjetasRepository.getTarjetaById(spaceId, transferencia.getCuentaDestinoId());
@@ -92,7 +93,7 @@ public class TransferenciasService {
                     response.setMessage("La tarjeta destino no existe.");
                     return response;
                 }
-
+                transferencia.setNombreCuentaDestino(tarjetaDestinoDto.getNombre());
                 transferenciaid = transferenciasRepository.newTransferenciaTarjeta(spaceId, transferencia, cuentaOrigen, tarjetaDestinoDto);
             }
 

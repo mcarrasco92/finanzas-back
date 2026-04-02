@@ -20,6 +20,33 @@ public class ResumenMensualController {
     @Autowired
     private ResumenMensualService resumenMensualService;
 
+    @GetMapping("/anual")
+    public ResponseEntity<GenericResponse> getResumenAnual(
+            HttpServletRequest request,
+            @RequestParam int anio) {
+
+        GenericResponse response = new GenericResponse();
+
+        try {
+            if (anio < 2000 || anio > 2100) {
+                response.setCoderr("1002");
+                response.setMessage("El año proporcionado no es válido.");
+                return ResponseEntity.ok(response);
+            }
+
+            String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
+
+            response = resumenMensualService.obtenerResumenAnual(spaceId, uid, anio);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.setCoderr("9999");
+            response.setMessage("Error al obtener el resumen anual: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     @GetMapping("/mensual")
     public ResponseEntity<GenericResponse> getResumenMensual(
             HttpServletRequest request,

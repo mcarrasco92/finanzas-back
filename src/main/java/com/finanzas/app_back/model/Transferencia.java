@@ -12,6 +12,8 @@ public class Transferencia {
     private String cuentaOrigenId;
     private String cuentaDestinoId;
     private String concepto;
+    private String nombreCuentaOrigen;
+    private String nombreCuentaDestino;
 
     public void setDataDto(TransferenciaDto transferenciaData) {
         this.fecha = transferenciaData.getFecha();

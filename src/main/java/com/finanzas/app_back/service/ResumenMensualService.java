@@ -121,6 +121,80 @@ public class ResumenMensualService {
         return response;
     }
 
+    public GenericResponse obtenerResumenAnual(String spaceId, String uid, int anio) {
+        GenericResponse response = new GenericResponse();
+        try {
+            spaceRepository.validateMembership(spaceId, uid);
+
+            // Load cuentas and tarjetas once for the whole year
+            ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(spaceId);
+            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
+
+            List<ResumenMensualDto> resumenAnual = new ArrayList<>();
+
+            for (int mes = 1; mes <= 12; mes++) {
+                String yearMonth = String.format("%04d-%02d", anio, mes);
+
+                List<CuentaResumenDto> cuentasResumen = new ArrayList<>();
+                for (CuentaDto cuenta : cuentas) {
+                    ArrayList<TransaccionDto> transacciones =
+                            transaccionesRepository.getTransaccionesCuentaByMonth(spaceId, yearMonth, cuenta.getId());
+                    List<TransaccionConCategoriaDto> transaccionesConCategoria =
+                            enriquecerConCategoria(spaceId, transacciones);
+
+                    CuentaResumenDto cuentaResumen = new CuentaResumenDto();
+                    cuentaResumen.setId(cuenta.getId());
+                    cuentaResumen.setNombre(cuenta.getNombre());
+                    cuentaResumen.setDescripcion(cuenta.getDescripcion());
+                    cuentaResumen.setInstitucion(cuenta.getInstitucion());
+                    cuentaResumen.setSaldo(cuenta.getSaldo());
+                    cuentaResumen.setInversion(cuenta.isInversion());
+                    cuentaResumen.setVista(cuenta.isVista());
+                    cuentaResumen.setActiva(cuenta.isActiva());
+                    cuentaResumen.setOrden(cuenta.getOrden());
+                    cuentaResumen.setTransacciones(transaccionesConCategoria);
+                    cuentasResumen.add(cuentaResumen);
+                }
+
+                List<TarjetaResumenDto> tarjetasResumen = new ArrayList<>();
+                for (TarjetaDto tarjeta : tarjetas) {
+                    ArrayList<TransaccionDto> transacciones =
+                            transaccionesRepository.getTransaccionesTarjetaByMonth(spaceId, yearMonth, tarjeta.getId());
+                    List<TransaccionConCategoriaDto> transaccionesConCategoria =
+                            enriquecerConCategoria(spaceId, transacciones);
+
+                    TarjetaResumenDto tarjetaResumen = new TarjetaResumenDto();
+                    tarjetaResumen.setId(tarjeta.getId());
+                    tarjetaResumen.setNombre(tarjeta.getNombre());
+                    tarjetaResumen.setDescripcion(tarjeta.getDescripcion());
+                    tarjetaResumen.setInstitucion(tarjeta.getInstitucion());
+                    tarjetaResumen.setSaldo(tarjeta.getSaldo());
+                    tarjetaResumen.setDpago(tarjeta.getDpago());
+                    tarjetaResumen.setDcorte(tarjeta.getDcorte());
+                    tarjetaResumen.setActiva(tarjeta.isActiva());
+                    tarjetaResumen.setOrden(tarjeta.getOrden());
+                    tarjetaResumen.setTransacciones(transaccionesConCategoria);
+                    tarjetasResumen.add(tarjetaResumen);
+                }
+
+                ResumenMensualDto resumenMes = new ResumenMensualDto();
+                resumenMes.setMes(mes);
+                resumenMes.setAnio(anio);
+                resumenMes.setCuentas(cuentasResumen);
+                resumenMes.setTarjetas(tarjetasResumen);
+                resumenAnual.add(resumenMes);
+            }
+
+            response.setCoderr("0000");
+            response.setMessage("Resumen anual obtenido exitosamente.");
+            response.setData(resumenAnual);
+
+        } catch (Exception e) {
+            response = generalService.handleExcepcion(e, "Error al obtener el resumen anual");
+        }
+        return response;
+    }
+
     private List<TransaccionConCategoriaDto> enriquecerConCategoria(String spaceId, List<TransaccionDto> transacciones)
             throws Exception {
 

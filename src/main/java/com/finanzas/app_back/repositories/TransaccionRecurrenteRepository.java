@@ -159,47 +159,33 @@ public class TransaccionRecurrenteRepository {
     }
 
     public void generaTransaccionesRecurrentes(TransaccionesService transaccionesService) throws Exception {
-        System.out.println("Iniciando generación de transacciones recurrentes...");
-        CollectionReference spacesRef = firestore.collection("spaces");
-        ApiFuture<QuerySnapshot> spacesQuery = spacesRef.get();
-        java.util.List<QueryDocumentSnapshot> spaceDocuments = spacesQuery.get().getDocuments();
+        String hoy = LocalDate.now().toString();
 
-        System.out.println("Spaces encontrados: " + spaceDocuments.size());
+        // Collection group query — reads only the documents due today across all spaces
+        ApiFuture<QuerySnapshot> query = firestore.collectionGroup(COLLECTION_NAME)
+                .whereEqualTo("siguienteEjecucion", hoy)
+                .get();
 
-        for (QueryDocumentSnapshot spaceDoc : spaceDocuments) {
-            String spaceId = spaceDoc.getId();
-            CollectionReference colRef = spacesRef.document(spaceId).collection(COLLECTION_NAME);
-            ApiFuture<QuerySnapshot> transRecQuery = colRef.get();
-            System.out.println("Procesando transacciones recurrentes para el space: " + spaceId);
-            for (QueryDocumentSnapshot transRecDoc : transRecQuery.get().getDocuments()) {
-                TransaccionRecurrente dto = transRecDoc.toObject(TransaccionRecurrente.class);
-                LocalDate hoy = LocalDate.now();
+        for (QueryDocumentSnapshot transRecDoc : query.get().getDocuments()) {
+            // Path: spaces/{spaceId}/transaccionesRecurrentes/{docId}
+            String spaceId = transRecDoc.getReference().getParent().getParent().getId();
 
-                System.out.println("Evaluando transacción recurrente: " + dto);
-                System.out.println("Fecha de siguiente ejecución: " + dto.getSiguienteEjecucion());
+            TransaccionRecurrente dto = transRecDoc.toObject(TransaccionRecurrente.class);
 
-                if (dto.getSiguienteEjecucion() != null && !dto.getSiguienteEjecucion().isEmpty()) {
-                    LocalDate siguienteEjecucion = LocalDate.parse(dto.getSiguienteEjecucion());
-                    if (siguienteEjecucion.isEqual(hoy)) {
+            TransaccionDto movimiento = new TransaccionDto();
+            movimiento.setFecha(hoy);
+            movimiento.setImporte(dto.getImporte());
+            movimiento.setCatEgresoId(dto.getCatEgresoId());
+            movimiento.setCatIngresoId(dto.getCatIngresoId());
+            movimiento.setTarjetaId(dto.getTarjetaId());
+            movimiento.setCuentaId(dto.getCuentaId());
+            movimiento.setConcepto(dto.getConcepto());
+            movimiento.setDescripcion(dto.getDescripcion());
+            movimiento.setTipo(dto.getTipo());
+            transaccionesService.registrarTransaccion(spaceId, movimiento);
 
-                        System.out.println("Es hoy la fecha de ejecución para la transacción recurrente: " + dto);
-                        TransaccionDto movimiento = new TransaccionDto();
-                        movimiento.setFecha(hoy.toString());
-                        movimiento.setImporte(dto.getImporte());
-                        movimiento.setCatEgresoId(dto.getCatEgresoId());
-                        movimiento.setCatIngresoId(dto.getCatIngresoId());
-                        movimiento.setTarjetaId(dto.getTarjetaId());
-                        movimiento.setCuentaId(dto.getCuentaId());
-                        movimiento.setConcepto(dto.getConcepto());
-                        movimiento.setDescripcion(dto.getDescripcion());
-                        movimiento.setTipo(dto.getTipo());
-                        transaccionesService.registrarTransaccion(spaceId, movimiento);
-                        String nuevaEjecucion = calcularSiguienteEjecucion(dto);
-                        DocumentReference transRecRef = colRef.document(transRecDoc.getId());
-                        transRecRef.update("siguienteEjecucion", nuevaEjecucion).get();
-                    }
-                }
-            }
+            String nuevaEjecucion = calcularSiguienteEjecucion(dto);
+            transRecDoc.getReference().update("siguienteEjecucion", nuevaEjecucion).get();
         }
     }
 

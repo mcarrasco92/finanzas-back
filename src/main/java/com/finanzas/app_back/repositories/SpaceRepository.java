@@ -113,6 +113,16 @@ public class SpaceRepository {
         }
     }
 
+    // Single read that validates membership AND returns role — use instead of calling both methods
+    public String validateAndGetRole(String spaceId, String uid) throws ExecutionException, InterruptedException {
+        DocumentSnapshot snap = firestore.collection("spaces").document(spaceId)
+                .collection("members").document(uid).get().get();
+        if (!snap.exists()) {
+            throw new RuntimeException("403: El usuario no tiene acceso al space especificado.");
+        }
+        return snap.getString("role");
+    }
+
     public String createInvitation(Invitation invitation) throws ExecutionException, InterruptedException {
         String code = generateUniqueCode();
         invitation.setCode(code);
@@ -170,30 +180,39 @@ public class SpaceRepository {
     }
 
     public void deleteSpace(String spaceId) throws ExecutionException, InterruptedException {
-        // 1. Collect all member IDs to clean up user→space references
-        List<String> memberIds = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : firestore.collection("spaces").document(spaceId)
-                .collection("members").get().get().getDocuments()) {
-            memberIds.add(doc.getId());
-        }
-
-        // 2. Delete data subcollections
         String[] subcollections = { "members", "cuentas", "transacciones", "tarjetas",
                 "categorias", "transaccionesRecurrentes", "transferencias", "msi" };
+
+        // 1. Fire all subcollection list queries in parallel
+        List<ApiFuture<QuerySnapshot>> futures = new ArrayList<>();
         for (String sub : subcollections) {
-            for (QueryDocumentSnapshot doc : firestore.collection("spaces").document(spaceId)
-                    .collection(sub).get().get().getDocuments()) {
-                doc.getReference().delete().get();
+            futures.add(firestore.collection("spaces").document(spaceId).collection(sub).get());
+        }
+
+        // 2. Collect all document refs to delete; extract member IDs from the first future ("members")
+        List<DocumentReference> refsToDelete = new ArrayList<>();
+        List<String> memberIds = new ArrayList<>();
+        for (int i = 0; i < futures.size(); i++) {
+            for (QueryDocumentSnapshot doc : futures.get(i).get().getDocuments()) {
+                refsToDelete.add(doc.getReference());
+                if (i == 0) memberIds.add(doc.getId()); // "members" subcollection
             }
         }
 
-        // 3. Remove user→space index entries for every member
-        WriteBatch batch = firestore.batch();
+        // 3. Add user→space index refs and the space document itself
         for (String memberId : memberIds) {
-            batch.delete(firestore.collection("users").document(memberId).collection("spaces").document(spaceId));
+            refsToDelete.add(firestore.collection("users").document(memberId).collection("spaces").document(spaceId));
         }
-        batch.delete(firestore.collection("spaces").document(spaceId));
-        batch.commit().get();
+        refsToDelete.add(firestore.collection("spaces").document(spaceId));
+
+        // 4. Batch delete in chunks of 500 (Firestore limit)
+        for (int i = 0; i < refsToDelete.size(); i += 500) {
+            WriteBatch batch = firestore.batch();
+            for (DocumentReference ref : refsToDelete.subList(i, Math.min(i + 500, refsToDelete.size()))) {
+                batch.delete(ref);
+            }
+            batch.commit().get();
+        }
     }
 
     public void acceptInvitation(String code, String uid, String spaceId, String role) throws ExecutionException, InterruptedException {
