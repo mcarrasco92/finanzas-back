@@ -114,7 +114,8 @@ public class TarjetasRepository {
 
             LocalDate fechaActual = LocalDate.now();
 
-            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte);
+            int diaCorteEfectivo = Math.min(diaCorte, fechaActual.lengthOfMonth());
+            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorteEfectivo);
 
             fechaInicio = fechaInicio.plusDays(1);
 
@@ -159,7 +160,8 @@ public class TarjetasRepository {
 
             LocalDate fechaActual = LocalDate.now();
 
-            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorte);
+            int diaCorteEfectivo = Math.min(diaCorte, fechaActual.lengthOfMonth());
+            LocalDate fechaInicio = fechaActual.withDayOfMonth(diaCorteEfectivo);
 
             fechaInicio = fechaInicio.plusDays(1);
 
