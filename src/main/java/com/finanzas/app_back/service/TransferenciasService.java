@@ -79,7 +79,7 @@ public class TransferenciasService {
             if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Cuenta")){
                 cuentaDestinoDto = cuentasRepository.getCuentaById(spaceId, transferencia.getCuentaDestinoId());
                 if(cuentaDestinoDto == null){
-                    response.setCoderr("1005");
+                    response.setCoderr("1004");
                     response.setMessage("La cuenta destino no existe.");
                     return response;
                 }
@@ -89,7 +89,7 @@ public class TransferenciasService {
             } else if(transferencia.getTipoCuentaDestino().equalsIgnoreCase("Tarjeta")){
                 tarjetaDestinoDto = tarjetasRepository.getTarjetaById(spaceId, transferencia.getCuentaDestinoId());
                 if(tarjetaDestinoDto == null){
-                    response.setCoderr("1006");
+                    response.setCoderr("1004");
                     response.setMessage("La tarjeta destino no existe.");
                     return response;
                 }

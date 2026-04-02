@@ -22,6 +22,18 @@ public class TarjetaDto {
         if (institucion == null || institucion.isEmpty()) return "El campo institución es obligatorio.";
         if (dpago == null || dpago.isEmpty()) return "El campo día de pago es obligatorio.";
         if (dcorte == null || dcorte.isEmpty()) return "El campo día de corte es obligatorio.";
+        try {
+            int dpagInt = Integer.parseInt(dpago);
+            if (dpagInt < 1 || dpagInt > 31) return "El campo día de pago debe estar entre 1 y 31.";
+        } catch (NumberFormatException e) {
+            return "El campo día de pago debe ser un número válido.";
+        }
+        try {
+            int dcorteInt = Integer.parseInt(dcorte);
+            if (dcorteInt < 1 || dcorteInt > 31) return "El campo día de corte debe estar entre 1 y 31.";
+        } catch (NumberFormatException e) {
+            return "El campo día de corte debe ser un número válido.";
+        }
         return "";
     }
 
