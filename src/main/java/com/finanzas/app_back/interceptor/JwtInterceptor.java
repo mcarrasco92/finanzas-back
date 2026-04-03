@@ -22,11 +22,16 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // Permitir preflight CORS
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         String path = request.getRequestURI();
-    
+
         // Excluir rutas públicas
-        if (path.startsWith("/api/users/register") || 
-            path.startsWith("/api/users/create-token") || 
+        if (path.startsWith("/api/users/register") ||
+            path.startsWith("/api/users/create-token") ||
             path.startsWith("/api/users/validate-token")) {
             return true; // Permitir estas rutas sin validación
         }
