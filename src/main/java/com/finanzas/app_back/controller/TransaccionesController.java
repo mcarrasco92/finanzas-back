@@ -48,6 +48,22 @@ public class TransaccionesController {
     }
 
 
+    @GetMapping("/busqueda")
+    public ResponseEntity<GenericResponse> getTransaccionesParaBusqueda(HttpServletRequest request) {
+        GenericResponse response = new GenericResponse();
+        try {
+            String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
+            response = transaccionesService.obtenerTransaccionesParaBusqueda(spaceId, uid);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.setCoderr("9999");
+            response.setMessage("Error al obtener transacciones para búsqueda: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+
     ///////////////////////////////     REGISTRAR TRANSACCION    //////////////////////////////
 
     @PostMapping("/registrar")

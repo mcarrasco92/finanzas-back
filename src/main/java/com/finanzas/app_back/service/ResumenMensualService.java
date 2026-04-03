@@ -1,7 +1,9 @@
 package com.finanzas.app_back.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,11 +17,13 @@ import com.finanzas.app_back.dto.Resumen.TarjetaResumenDto;
 import com.finanzas.app_back.dto.Resumen.TransaccionConCategoriaDto;
 import com.finanzas.app_back.dto.Tarjetas.TarjetaDto;
 import com.finanzas.app_back.dto.Transacciones.TransaccionDto;
+import com.finanzas.app_back.model.Transferencia;
 import com.finanzas.app_back.repositories.CategoriasRepository;
 import com.finanzas.app_back.repositories.CuentasRepository;
 import com.finanzas.app_back.repositories.SpaceRepository;
 import com.finanzas.app_back.repositories.TarjetasRepository;
 import com.finanzas.app_back.repositories.TransaccionesRepository;
+import com.finanzas.app_back.repositories.TransferenciasRepository;
 
 @Service
 public class ResumenMensualService {
@@ -37,71 +41,54 @@ public class ResumenMensualService {
     private TransaccionesRepository transaccionesRepository;
 
     @Autowired
+    private TransferenciasRepository transferenciasRepository;
+
+    @Autowired
     private CategoriasRepository categoriasRepository;
 
     @Autowired
     private SpaceRepository spaceRepository;
 
-    private GenericResponse response = new GenericResponse();
-
     public GenericResponse obtenerResumenMensual(String spaceId, String uid, int mes, int anio) {
-
+        GenericResponse response = new GenericResponse();
         try {
-
             spaceRepository.validateMembership(spaceId, uid);
 
             String yearMonth = String.format("%04d-%02d", anio, mes);
 
-            // ---- Cuentas ----
             ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(spaceId);
-            List<CuentaResumenDto> cuentasResumen = new ArrayList<>();
+            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
+            Map<String, CategoriaDto> categoriasMap = buildCategoriasMap(spaceId);
+            ArrayList<TransaccionDto> todasTransacciones = transaccionesRepository.getTransaccionesByMonth(spaceId, yearMonth);
+            ArrayList<Transferencia> todasTransferencias = transferenciasRepository.getTransferenciasByMonth(spaceId, yearMonth);
 
-            for (CuentaDto cuenta : cuentas) {
-                ArrayList<TransaccionDto> transacciones =
-                        transaccionesRepository.getTransaccionesCuentaByMonth(spaceId, yearMonth, cuenta.getId());
-
-                List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                        enriquecerConCategoria(spaceId, transacciones);
-
-                CuentaResumenDto cuentaResumen = new CuentaResumenDto();
-                cuentaResumen.setId(cuenta.getId());
-                cuentaResumen.setNombre(cuenta.getNombre());
-                cuentaResumen.setDescripcion(cuenta.getDescripcion());
-                cuentaResumen.setInstitucion(cuenta.getInstitucion());
-                cuentaResumen.setSaldo(cuenta.getSaldo());
-                cuentaResumen.setInversion(cuenta.isInversion());
-                cuentaResumen.setVista(cuenta.isVista());
-                cuentaResumen.setActiva(cuenta.isActiva());
-                cuentaResumen.setOrden(cuenta.getOrden());
-                cuentaResumen.setTransacciones(transaccionesConCategoria);
-
-                cuentasResumen.add(cuentaResumen);
+            Map<String, List<TransaccionDto>> txPorCuenta = new HashMap<>();
+            Map<String, List<TransaccionDto>> txPorTarjeta = new HashMap<>();
+            for (TransaccionDto t : todasTransacciones) {
+                if (t.getCuentaId() != null && !t.getCuentaId().isEmpty()) {
+                    txPorCuenta.computeIfAbsent(t.getCuentaId(), k -> new ArrayList<>()).add(t);
+                } else if (t.getTarjetaId() != null && !t.getTarjetaId().isEmpty()) {
+                    txPorTarjeta.computeIfAbsent(t.getTarjetaId(), k -> new ArrayList<>()).add(t);
+                }
             }
 
-            // ---- Tarjetas ----
-            ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
+            Map<String, List<TransaccionDto>> transferenciasPorCuenta = buildTransferenciasPorCuenta(todasTransferencias);
+
+            List<CuentaResumenDto> cuentasResumen = new ArrayList<>();
+            for (CuentaDto cuenta : cuentas) {
+                List<TransaccionDto> todas = new ArrayList<>();
+                todas.addAll(txPorCuenta.getOrDefault(cuenta.getId(), List.of()));
+                todas.addAll(transferenciasPorCuenta.getOrDefault(cuenta.getId(), List.of()));
+
+                CuentaResumenDto cr = buildCuentaResumen(cuenta, todas, categoriasMap);
+                cuentasResumen.add(cr);
+            }
+
             List<TarjetaResumenDto> tarjetasResumen = new ArrayList<>();
-
             for (TarjetaDto tarjeta : tarjetas) {
-                ArrayList<TransaccionDto> transacciones =
-                        transaccionesRepository.getTransaccionesTarjetaByMonth(spaceId, yearMonth, tarjeta.getId());
-
-                List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                        enriquecerConCategoria(spaceId, transacciones);
-
-                TarjetaResumenDto tarjetaResumen = new TarjetaResumenDto();
-                tarjetaResumen.setId(tarjeta.getId());
-                tarjetaResumen.setNombre(tarjeta.getNombre());
-                tarjetaResumen.setDescripcion(tarjeta.getDescripcion());
-                tarjetaResumen.setInstitucion(tarjeta.getInstitucion());
-                tarjetaResumen.setSaldo(tarjeta.getSaldo());
-                tarjetaResumen.setDpago(tarjeta.getDpago());
-                tarjetaResumen.setDcorte(tarjeta.getDcorte());
-                tarjetaResumen.setActiva(tarjeta.isActiva());
-                tarjetaResumen.setOrden(tarjeta.getOrden());
-                tarjetaResumen.setTransacciones(transaccionesConCategoria);
-
-                tarjetasResumen.add(tarjetaResumen);
+                List<TransaccionDto> txTarjeta = txPorTarjeta.getOrDefault(tarjeta.getId(), List.of());
+                TarjetaResumenDto tr = buildTarjetaResumen(tarjeta, txTarjeta, categoriasMap);
+                tarjetasResumen.add(tr);
             }
 
             ResumenMensualDto resumen = new ResumenMensualDto();
@@ -117,7 +104,6 @@ public class ResumenMensualService {
         } catch (Exception e) {
             response = generalService.handleExcepcion(e, "Error al obtener el resumen mensual");
         }
-
         return response;
     }
 
@@ -126,55 +112,64 @@ public class ResumenMensualService {
         try {
             spaceRepository.validateMembership(spaceId, uid);
 
-            // Load cuentas and tarjetas once for the whole year
+            String year = String.format("%04d", anio);
+
+            // 6 queries total en lugar de 100+
             ArrayList<CuentaDto> cuentas = cuentasRepository.getCuentas(spaceId);
             ArrayList<TarjetaDto> tarjetas = tarjetasRepository.getTarjetas(spaceId);
+            Map<String, CategoriaDto> categoriasMap = buildCategoriasMap(spaceId);
+            ArrayList<TransaccionDto> todasTransacciones = transaccionesRepository.getTransaccionesByYear(spaceId, year);
+            ArrayList<Transferencia> todasTransferencias = transferenciasRepository.getTransferenciasByYear(spaceId, year);
+
+            // Agrupar transacciones por cuentaId -> yearMonth
+            Map<String, Map<String, List<TransaccionDto>>> txPorCuenta = new HashMap<>();
+            // Agrupar transacciones por tarjetaId -> yearMonth
+            Map<String, Map<String, List<TransaccionDto>>> txPorTarjeta = new HashMap<>();
+            for (TransaccionDto t : todasTransacciones) {
+                if (t.getFecha() == null || t.getFecha().length() < 7) continue;
+                String ym = t.getFecha().substring(0, 7);
+                if (t.getCuentaId() != null && !t.getCuentaId().isEmpty()) {
+                    txPorCuenta.computeIfAbsent(t.getCuentaId(), k -> new HashMap<>())
+                               .computeIfAbsent(ym, k -> new ArrayList<>()).add(t);
+                } else if (t.getTarjetaId() != null && !t.getTarjetaId().isEmpty()) {
+                    txPorTarjeta.computeIfAbsent(t.getTarjetaId(), k -> new HashMap<>())
+                                .computeIfAbsent(ym, k -> new ArrayList<>()).add(t);
+                }
+            }
+
+            // Agrupar transferencias por cuentaId -> yearMonth
+            Map<String, Map<String, List<TransaccionDto>>> transfPorCuenta = new HashMap<>();
+            for (Transferencia tf : todasTransferencias) {
+                if (tf.getFecha() == null || tf.getFecha().length() < 7) continue;
+                String ym = tf.getFecha().substring(0, 7);
+
+                TransaccionDto egreso = transferenciaToEgreso(tf);
+                transfPorCuenta.computeIfAbsent(tf.getCuentaOrigenId(), k -> new HashMap<>())
+                               .computeIfAbsent(ym, k -> new ArrayList<>()).add(egreso);
+
+                if ("Cuenta".equals(tf.getTipoCuentaDestino())) {
+                    TransaccionDto ingreso = transferenciaToIngreso(tf);
+                    transfPorCuenta.computeIfAbsent(tf.getCuentaDestinoId(), k -> new HashMap<>())
+                                   .computeIfAbsent(ym, k -> new ArrayList<>()).add(ingreso);
+                }
+            }
 
             List<ResumenMensualDto> resumenAnual = new ArrayList<>();
-
             for (int mes = 1; mes <= 12; mes++) {
                 String yearMonth = String.format("%04d-%02d", anio, mes);
 
                 List<CuentaResumenDto> cuentasResumen = new ArrayList<>();
                 for (CuentaDto cuenta : cuentas) {
-                    ArrayList<TransaccionDto> transacciones =
-                            transaccionesRepository.getTransaccionesCuentaByMonth(spaceId, yearMonth, cuenta.getId());
-                    List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                            enriquecerConCategoria(spaceId, transacciones);
-
-                    CuentaResumenDto cuentaResumen = new CuentaResumenDto();
-                    cuentaResumen.setId(cuenta.getId());
-                    cuentaResumen.setNombre(cuenta.getNombre());
-                    cuentaResumen.setDescripcion(cuenta.getDescripcion());
-                    cuentaResumen.setInstitucion(cuenta.getInstitucion());
-                    cuentaResumen.setSaldo(cuenta.getSaldo());
-                    cuentaResumen.setInversion(cuenta.isInversion());
-                    cuentaResumen.setVista(cuenta.isVista());
-                    cuentaResumen.setActiva(cuenta.isActiva());
-                    cuentaResumen.setOrden(cuenta.getOrden());
-                    cuentaResumen.setTransacciones(transaccionesConCategoria);
-                    cuentasResumen.add(cuentaResumen);
+                    List<TransaccionDto> todas = new ArrayList<>();
+                    todas.addAll(txPorCuenta.getOrDefault(cuenta.getId(), Map.of()).getOrDefault(yearMonth, List.of()));
+                    todas.addAll(transfPorCuenta.getOrDefault(cuenta.getId(), Map.of()).getOrDefault(yearMonth, List.of()));
+                    cuentasResumen.add(buildCuentaResumen(cuenta, todas, categoriasMap));
                 }
 
                 List<TarjetaResumenDto> tarjetasResumen = new ArrayList<>();
                 for (TarjetaDto tarjeta : tarjetas) {
-                    ArrayList<TransaccionDto> transacciones =
-                            transaccionesRepository.getTransaccionesTarjetaByMonth(spaceId, yearMonth, tarjeta.getId());
-                    List<TransaccionConCategoriaDto> transaccionesConCategoria =
-                            enriquecerConCategoria(spaceId, transacciones);
-
-                    TarjetaResumenDto tarjetaResumen = new TarjetaResumenDto();
-                    tarjetaResumen.setId(tarjeta.getId());
-                    tarjetaResumen.setNombre(tarjeta.getNombre());
-                    tarjetaResumen.setDescripcion(tarjeta.getDescripcion());
-                    tarjetaResumen.setInstitucion(tarjeta.getInstitucion());
-                    tarjetaResumen.setSaldo(tarjeta.getSaldo());
-                    tarjetaResumen.setDpago(tarjeta.getDpago());
-                    tarjetaResumen.setDcorte(tarjeta.getDcorte());
-                    tarjetaResumen.setActiva(tarjeta.isActiva());
-                    tarjetaResumen.setOrden(tarjeta.getOrden());
-                    tarjetaResumen.setTransacciones(transaccionesConCategoria);
-                    tarjetasResumen.add(tarjetaResumen);
+                    List<TransaccionDto> txTarjeta = txPorTarjeta.getOrDefault(tarjeta.getId(), Map.of()).getOrDefault(yearMonth, List.of());
+                    tarjetasResumen.add(buildTarjetaResumen(tarjeta, txTarjeta, categoriasMap));
                 }
 
                 ResumenMensualDto resumenMes = new ResumenMensualDto();
@@ -195,11 +190,92 @@ public class ResumenMensualService {
         return response;
     }
 
-    private List<TransaccionConCategoriaDto> enriquecerConCategoria(String spaceId, List<TransaccionDto> transacciones)
-            throws Exception {
+    // --- helpers ---
 
+    private Map<String, CategoriaDto> buildCategoriasMap(String spaceId) throws Exception {
+        ArrayList<CategoriaDto> lista = categoriasRepository.getCategorias(spaceId);
+        Map<String, CategoriaDto> map = new HashMap<>();
+        for (CategoriaDto cat : lista) {
+            map.put(cat.getId(), cat);
+        }
+        return map;
+    }
+
+    private Map<String, List<TransaccionDto>> buildTransferenciasPorCuenta(ArrayList<Transferencia> transferencias) {
+        Map<String, List<TransaccionDto>> map = new HashMap<>();
+        for (Transferencia tf : transferencias) {
+            map.computeIfAbsent(tf.getCuentaOrigenId(), k -> new ArrayList<>()).add(transferenciaToEgreso(tf));
+            if ("Cuenta".equals(tf.getTipoCuentaDestino())) {
+                map.computeIfAbsent(tf.getCuentaDestinoId(), k -> new ArrayList<>()).add(transferenciaToIngreso(tf));
+            }
+        }
+        return map;
+    }
+
+    private TransaccionDto transferenciaToEgreso(Transferencia tf) {
+        TransaccionDto t = new TransaccionDto();
+        t.setFecha(tf.getFecha());
+        t.setImporte(tf.getImporte());
+        t.setCuentaId(tf.getCuentaOrigenId());
+        t.setTipo("Egreso");
+        t.setConcepto(tf.getConcepto());
+        t.setTransferencia(true);
+        String nombreDestino = tf.getNombreCuentaDestino() != null ? tf.getNombreCuentaDestino() : "";
+        if ("Cuenta".equals(tf.getTipoCuentaDestino())) {
+            t.setDescripcion("Transferencia a " + nombreDestino);
+        } else if ("Tarjeta".equals(tf.getTipoCuentaDestino())) {
+            t.setDescripcion("Pago a " + nombreDestino);
+        } else {
+            t.setDescripcion("Transferencia a cuenta");
+        }
+        return t;
+    }
+
+    private TransaccionDto transferenciaToIngreso(Transferencia tf) {
+        TransaccionDto t = new TransaccionDto();
+        t.setFecha(tf.getFecha());
+        t.setImporte(tf.getImporte());
+        t.setCuentaId(tf.getCuentaDestinoId());
+        t.setTipo("Ingreso");
+        t.setConcepto(tf.getConcepto());
+        t.setTransferencia(true);
+        String nombreOrigen = tf.getNombreCuentaOrigen() != null ? tf.getNombreCuentaOrigen() : "";
+        t.setDescripcion("Transferencia de " + nombreOrigen);
+        return t;
+    }
+
+    private CuentaResumenDto buildCuentaResumen(CuentaDto cuenta, List<TransaccionDto> transacciones, Map<String, CategoriaDto> categoriasMap) {
+        CuentaResumenDto cr = new CuentaResumenDto();
+        cr.setId(cuenta.getId());
+        cr.setNombre(cuenta.getNombre());
+        cr.setDescripcion(cuenta.getDescripcion());
+        cr.setInstitucion(cuenta.getInstitucion());
+        cr.setSaldo(cuenta.getSaldo());
+        cr.setInversion(cuenta.isInversion());
+        cr.setVista(cuenta.isVista());
+        cr.setActiva(cuenta.isActiva());
+        cr.setOrden(cuenta.getOrden());
+        cr.setTransacciones(enriquecerConCategoriaMap(transacciones, categoriasMap));
+        return cr;
+    }
+
+    private TarjetaResumenDto buildTarjetaResumen(TarjetaDto tarjeta, List<TransaccionDto> transacciones, Map<String, CategoriaDto> categoriasMap) {
+        TarjetaResumenDto tr = new TarjetaResumenDto();
+        tr.setId(tarjeta.getId());
+        tr.setNombre(tarjeta.getNombre());
+        tr.setDescripcion(tarjeta.getDescripcion());
+        tr.setInstitucion(tarjeta.getInstitucion());
+        tr.setSaldo(tarjeta.getSaldo());
+        tr.setDpago(tarjeta.getDpago());
+        tr.setDcorte(tarjeta.getDcorte());
+        tr.setActiva(tarjeta.isActiva());
+        tr.setOrden(tarjeta.getOrden());
+        tr.setTransacciones(enriquecerConCategoriaMap(transacciones, categoriasMap));
+        return tr;
+    }
+
+    private List<TransaccionConCategoriaDto> enriquecerConCategoriaMap(List<TransaccionDto> transacciones, Map<String, CategoriaDto> categoriasMap) {
         List<TransaccionConCategoriaDto> resultado = new ArrayList<>();
-
         for (TransaccionDto t : transacciones) {
             TransaccionConCategoriaDto dto = new TransaccionConCategoriaDto();
             dto.setId(t.getId());
@@ -217,15 +293,13 @@ public class ResumenMensualService {
 
             CategoriaDto categoria = null;
             if (t.getCatIngresoId() != null && !t.getCatIngresoId().isEmpty()) {
-                categoria = categoriasRepository.getCategoriaById(spaceId, t.getCatIngresoId());
+                categoria = categoriasMap.get(t.getCatIngresoId());
             } else if (t.getCatEgresoId() != null && !t.getCatEgresoId().isEmpty()) {
-                categoria = categoriasRepository.getCategoriaById(spaceId, t.getCatEgresoId());
+                categoria = categoriasMap.get(t.getCatEgresoId());
             }
             dto.setCategoria(categoria);
-
             resultado.add(dto);
         }
-
         return resultado;
     }
 }

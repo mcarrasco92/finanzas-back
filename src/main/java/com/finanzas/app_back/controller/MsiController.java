@@ -62,6 +62,18 @@ public class MsiController {
         }
     }
 
+    @GetMapping("/{msiId}")
+    public ResponseEntity<GenericResponse> getMsiById(HttpServletRequest request, @PathVariable String msiId) {
+        try {
+            String uid = (String) request.getAttribute("uid");
+            String spaceId = request.getHeader("X-Space-Id");
+            GenericResponse response = MsiService.obtenerMsiById(spaceId, uid, msiId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return manejarExcepcion(e, "Error al obtener el MSI");
+        }
+    }
+
     @GetMapping("")
     public ResponseEntity<GenericResponse> getMsis(HttpServletRequest request) {
         try {

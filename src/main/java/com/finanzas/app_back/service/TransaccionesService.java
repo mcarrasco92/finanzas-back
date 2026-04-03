@@ -1,5 +1,6 @@
 package com.finanzas.app_back.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -397,6 +398,33 @@ public class TransaccionesService {
         }
 
 
+    }
+
+    public GenericResponse obtenerTransaccionesParaBusqueda(String spaceId, String uid) {
+        GenericResponse response = new GenericResponse();
+        try {
+            spaceRepository.validateMembership(spaceId, uid);
+
+            LocalDate hoy = LocalDate.now();
+            String fechaFin = hoy.toString();
+            String fechaInicio = hoy.minusYears(1).toString();
+
+            ArrayList<TransaccionDto> transacciones =
+                    transaccionesRepository.getTransaccionesByDateRange(spaceId, fechaInicio, fechaFin);
+
+            transacciones.sort((a, b) -> {
+                if (a.getFecha() == null) return 1;
+                if (b.getFecha() == null) return -1;
+                return b.getFecha().compareTo(a.getFecha());
+            });
+
+            response.setCoderr("0000");
+            response.setMessage("Transacciones obtenidas exitosamente.");
+            response.setData(transacciones);
+        } catch (Exception e) {
+            response = generalService.handleExcepcion(e, "Error al obtener transacciones para búsqueda");
+        }
+        return response;
     }
 
     private enum TipoActualizacion {

@@ -252,6 +252,58 @@ public class TransaccionesRepository {
         return result;
     }
 
+    public ArrayList<TransaccionDto> getTransaccionesByYear(String spaceId, String year)
+            throws ExecutionException, InterruptedException {
+        String fechaInicio = year + "-01-01";
+        String fechaFin = year + "-12-31";
+        QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)
+                .collection(COLLECTION_NAME)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio)
+                .whereLessThanOrEqualTo("fecha", fechaFin)
+                .get().get();
+        ArrayList<TransaccionDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            TransaccionDto t = doc.toObject(TransaccionDto.class);
+            t.setId(doc.getId());
+            result.add(t);
+        }
+        return result;
+    }
+
+    public ArrayList<TransaccionDto> getTransaccionesByMonth(String spaceId, String yearMonth)
+            throws ExecutionException, InterruptedException {
+        String fechaInicio = yearMonth + "-01";
+        String fechaFin = yearMonth + "-31";
+        QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)
+                .collection(COLLECTION_NAME)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio)
+                .whereLessThanOrEqualTo("fecha", fechaFin)
+                .get().get();
+        ArrayList<TransaccionDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            TransaccionDto t = doc.toObject(TransaccionDto.class);
+            t.setId(doc.getId());
+            result.add(t);
+        }
+        return result;
+    }
+
+    public ArrayList<TransaccionDto> getTransaccionesByDateRange(String spaceId, String fechaInicio, String fechaFin)
+            throws ExecutionException, InterruptedException {
+        QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)
+                .collection(COLLECTION_NAME)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio)
+                .whereLessThanOrEqualTo("fecha", fechaFin)
+                .get().get();
+        ArrayList<TransaccionDto> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            TransaccionDto t = doc.toObject(TransaccionDto.class);
+            t.setId(doc.getId());
+            result.add(t);
+        }
+        return result;
+    }
+
     public Boolean getExistTransaccionesByTarjeta(String spaceId, String tarjetaId)
             throws ExecutionException, InterruptedException {
         QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)

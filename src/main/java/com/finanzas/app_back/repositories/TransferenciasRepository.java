@@ -1,5 +1,6 @@
 package com.finanzas.app_back.repositories;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 
 @Repository
 public class TransferenciasRepository {
@@ -22,6 +25,38 @@ public class TransferenciasRepository {
     private Firestore firestore;
 
     private static final String COLLECTION_NAME = "transferencias";
+
+    public ArrayList<Transferencia> getTransferenciasByYear(String spaceId, String year)
+            throws ExecutionException, InterruptedException {
+        String fechaInicio = year + "-01-01";
+        String fechaFin = year + "-12-31";
+        QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)
+                .collection(COLLECTION_NAME)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio)
+                .whereLessThanOrEqualTo("fecha", fechaFin)
+                .get().get();
+        ArrayList<Transferencia> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            result.add(doc.toObject(Transferencia.class));
+        }
+        return result;
+    }
+
+    public ArrayList<Transferencia> getTransferenciasByMonth(String spaceId, String yearMonth)
+            throws ExecutionException, InterruptedException {
+        String fechaInicio = yearMonth + "-01";
+        String fechaFin = yearMonth + "-31";
+        QuerySnapshot snapshot = firestore.collection("spaces").document(spaceId)
+                .collection(COLLECTION_NAME)
+                .whereGreaterThanOrEqualTo("fecha", fechaInicio)
+                .whereLessThanOrEqualTo("fecha", fechaFin)
+                .get().get();
+        ArrayList<Transferencia> result = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+            result.add(doc.toObject(Transferencia.class));
+        }
+        return result;
+    }
 
     public String newTransferenciaCuenta(String spaceId, Transferencia transferencia, CuentaDto cuentaOrigen, CuentaDto cuentaDestino) throws ExecutionException, InterruptedException {
 
@@ -194,7 +229,7 @@ public class TransferenciasRepository {
 
             return "Transferencia eliminada y saldos actualizados.";
         });
-
+        future.get();
     }
 
 

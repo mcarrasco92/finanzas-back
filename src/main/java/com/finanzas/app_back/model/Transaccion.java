@@ -16,7 +16,6 @@ public class Transaccion {
     private String descripcion;
     private String tipo; // "Ingreso" o "Egreso"
     private String msiId;
-    private String[] fechas;
 
     public void setDataDto(TransaccionDto transaccionData) {
         this.fecha = transaccionData.getFecha();

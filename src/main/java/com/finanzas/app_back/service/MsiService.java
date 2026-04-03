@@ -85,6 +85,24 @@ public class MsiService {
         return response;
     }
 
+    public GenericResponse obtenerMsiById(String spaceId, String uid, String msiId) {
+        try {
+            spaceRepository.validateMembership(spaceId, uid);
+            MsiDto msi = msiRepository.getMsiById(spaceId, msiId);
+            if (msi == null) {
+                response.setCoderr("1004");
+                response.setMessage("MSI no encontrado.");
+                return response;
+            }
+            response.setCoderr("0000");
+            response.setMessage("MSI obtenido exitosamente.");
+            response.setData(msi);
+        } catch (Exception e) {
+            response = generalService.handleExcepcion(e, "Error al obtener el MSI");
+        }
+        return response;
+    }
+
     public GenericResponse eliminarMsi(String spaceId, String uid, String msiId) {
 
         try {

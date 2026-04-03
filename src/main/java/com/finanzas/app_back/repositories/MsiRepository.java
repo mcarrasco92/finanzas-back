@@ -100,6 +100,16 @@ public class MsiRepository {
     }
 
 
+    public MsiDto getMsiById(String spaceId, String msiId) throws Exception {
+        DocumentReference docRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(msiId);
+        DocumentSnapshot snapshot = docRef.get().get();
+        if (!snapshot.exists()) return null;
+        MsiDto dto = snapshot.toObject(MsiDto.class);
+        if (dto == null) return null;
+        dto.setId(snapshot.getId());
+        return dto;
+    }
+
     public void deleteMsi(String spaceId, String msiId) throws Exception {
         DocumentReference msiRef = firestore.collection("spaces").document(spaceId).collection(COLLECTION_NAME).document(msiId);
         CollectionReference transRef = firestore.collection("spaces").document(spaceId).collection("transacciones");
@@ -140,6 +150,7 @@ public class MsiRepository {
 
             return null;
         });
+        future.get();
     }
 
 
@@ -210,6 +221,7 @@ public class MsiRepository {
             return msiId;
         });
 
+        future.get();
         return msiId;
     }
 
